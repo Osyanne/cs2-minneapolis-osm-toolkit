@@ -18,6 +18,7 @@ dev = [
 # Entry point único — el resto (vial, services, transport) se añadirán en sesiones futuras
 [project.scripts]
 extract-zoning = "extract_zoning:main"
+extract-vial = "extract_vial:main"
 
 [build-system]
 requires = ["hatchling"]

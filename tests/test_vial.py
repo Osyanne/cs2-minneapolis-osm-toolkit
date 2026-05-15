@@ -95,3 +95,31 @@ def test_classify_highway_unknown_returns_none():
     assert classify_highway({"highway": "raceway"}) is None
     assert classify_highway({}) is None  # sin tag highway
     assert classify_highway({"highway": ""}) is None
+
+
+# ── geometry helper tests ────────────────────────────────────────────────────
+
+def test_linestring_from_way_returns_list_of_latlon_pairs():
+    from extract_vial import linestring_from_way
+    el = {
+        "type": "way",
+        "id": 1,
+        "geometry": [
+            {"lat": 44.97, "lon": -93.27},
+            {"lat": 44.98, "lon": -93.26},
+            {"lat": 44.99, "lon": -93.25},
+        ],
+        "tags": {"highway": "primary"},
+    }
+    coords = linestring_from_way(el)
+    assert coords == [[44.97, -93.27], [44.98, -93.26], [44.99, -93.25]]
+
+
+def test_linestring_from_way_skips_degenerate():
+    from extract_vial import linestring_from_way
+    # Una way con un solo punto no es una línea
+    el = {"type": "way", "id": 2, "geometry": [{"lat": 44.97, "lon": -93.27}]}
+    assert linestring_from_way(el) is None
+    # Sin geometry
+    assert linestring_from_way({"type": "way", "id": 3, "geometry": []}) is None
+    assert linestring_from_way({"type": "way", "id": 4}) is None
