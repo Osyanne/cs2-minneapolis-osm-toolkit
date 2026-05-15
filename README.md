@@ -6,7 +6,7 @@
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![OSM Data](https://img.shields.io/badge/Data-OpenStreetMap-orange)
-![Tests](https://img.shields.io/badge/tests-61%20passing-success)
+![Tests](https://img.shields.io/badge/tests-72%20passing-success)
 
 ## What This Does
 
@@ -143,6 +143,14 @@ Detailed plans for each milestone are in [docs/plans/](docs/plans/):
 - **Session 1.6** — model realigned to CS2 oficial (13 zones), footprint heuristic, 4-family palette
 - **Session 1.7** — Canvas renderer + tier-based hiding by polygon area
 - **Session 1.8** (experimental, rolled back) — Microsoft Building Footprints augmentation. Script `src/extract_msbuildings.py` remains for future improvement. Known issue: current logic misclassifies suburban houses near commercial corridors. See plan notes if you want to fix.
+- **Session 2** — Road Network Module (see below)
+
+### Road Network Module (Sesión 2)
+
+Extracts the road network from OpenStreetMap and classifies it into 6 CS2 categories: Highway, Major Road, Minor Road, Local Street, Pedestrian Path, Bike Lane. Renders as LineString overlay on top of the zoning map.
+
+Run: `uv run extract_vial.py`
+Output: `visualizer/datos_vial.js` (~25 MB, 108,825 features in Minneapolis bbox).
 
 ## Methodology
 
@@ -166,7 +174,7 @@ If you use AI assistants (Claude, Copilot, etc.) in your workflow, [bbox-mcp-ser
 |---|---|
 | **Bounding box** | `44.86,-93.38,45.05,-93.17` (Minneapolis + immediate borders) |
 | **Total polygons** | 81,732 |
-| **Tests** | 61 passing (50 classifier + 11 query sanity) |
+| **Tests** | 72 passing (50 classifier + 11 query sanity + 11 vial sanity) |
 | **Last extracted** | 2026-05-14 |
 
 ## License

@@ -287,3 +287,31 @@ Run with:
 cd src
 uv run --with pytest pytest ../tests/ -v
 ```
+
+## 14. Red Vial (Sesión 2)
+
+### Modelo
+
+6 categorías mapeadas 1:1 desde `highway=*`:
+
+| Categoría | Tags OSM |
+|---|---|
+| Highway | motorway, trunk (+ _link) |
+| Major Road | primary, secondary (+ _link) |
+| Minor Road | tertiary (+ _link), residential, unclassified |
+| Local Street | living_street, service |
+| Pedestrian Path | pedestrian, footway, path, steps |
+| Bike Lane | cycleway |
+
+### Pipeline
+
+- **1 query Overpass** con regex sobre highway → todas las categorías en una pasada
+- `vial_classifiers.classify_highway(tags)` → lookup en dict puro
+- `linestring_from_way(element)` → coords [[lat, lon], ...] (mínimo 2 puntos)
+- Output: `DATA_VIAL` bucketed por categoría + `DATA_VIAL_META`
+
+### Render
+
+LineStrings en `L.polyline()` sobre el mismo Canvas renderer del módulo zonificación. Weight por categoría (3.5px highway → 0.6px pedestrian). `bridge=yes` añade +0.5 al weight para destacar puentes del Mississippi.
+
+108,825 features renderizadas chunked async (5000 features/batch con yield a setTimeout) para evitar bloquear el main thread.

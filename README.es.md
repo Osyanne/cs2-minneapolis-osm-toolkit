@@ -6,7 +6,7 @@
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![OSM Data](https://img.shields.io/badge/Data-OpenStreetMap-orange)
-![Tests](https://img.shields.io/badge/tests-61%20passing-success)
+![Tests](https://img.shields.io/badge/tests-72%20passing-success)
 
 > 🇬🇧 English version: [README.md](README.md)
 
@@ -109,6 +109,14 @@ Los planes detallados están en [docs/plans/](docs/plans/):
 - **Sesión 1.6** — modelo realineado a CS2 oficial (13 zonas), heurística de footprint, paleta de 4 familias
 - **Sesión 1.7** — Canvas renderer + tier-based hiding por área de polígono
 - **Sesión 1.8** (experimental, revertida) — augmentación con Microsoft Buildings. El script `src/extract_msbuildings.py` queda en el repo para mejorar en el futuro. Bug conocido: clasifica mal casas suburbanas cerca de corredores comerciales.
+- **Sesión 2** — Módulo Red Vial (ver abajo)
+
+### Módulo Red Vial (Sesión 2)
+
+Extrae la red vial de OpenStreetMap y la clasifica en 6 categorías de CS2: Highway, Major Road, Minor Road, Local Street, Pedestrian Path, Bike Lane. Se renderiza como capa de LineStrings superpuesta sobre el mapa de zonificación.
+
+Ejecutar: `uv run extract_vial.py`
+Salida: `visualizer/datos_vial.js` (~25 MB, 108.825 features en el bbox de Minneapolis).
 
 ## Metodología
 
@@ -120,7 +128,7 @@ Todas las decisiones de diseño documentadas en [METHODOLOGY.md](METHODOLOGY.md)
 |---|---|
 | **Bounding box** | `44.86,-93.38,45.05,-93.17` (Mineapolis + bordes inmediatos) |
 | **Polígonos totales** | 81,732 |
-| **Tests** | 61 pasando (50 clasificador + 11 sanidad de queries) |
+| **Tests** | 72 pasando (50 clasificador + 11 sanidad zoning + 11 sanidad vial) |
 | **Última extracción** | 2026-05-14 |
 
 ## Licencia

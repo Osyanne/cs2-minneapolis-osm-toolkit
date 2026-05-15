@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <!-- Datos pre-generados por extract_zoning.py — opcional, si no existe se usa Overpass live -->
   <script src="datos_zonificacion.js" onerror="window.__noPrebuilt=true"></script>
+  <script src="datos_vial.js" onerror="window.__noVialPrebuilt=true"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; background: #0a0d1a; font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -191,6 +192,19 @@ const ZONES = {
   // Parking (2) — gris (referencia, no es zona CS2 técnicamente)
   prk_surface:   { color: "#B0BEC5", neon: "#CFD8DC", label: "Surface Parking",              sect: "Parking"     },
   prk_ramp:      { color: "#37474F", neon: "#607D8B", label: "Parking Structure",            sect: "Parking"     },
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VIAL_TYPES — 6 categorías de red vial CS2 (Sesión 2, 2026-05-15)
+// Renderizadas como LineStrings encima del mapa de zonificación.
+// ══════════════════════════════════════════════════════════════════════════════
+const VIAL_TYPES = {
+  highway:    { label: "Highway",         color: "#EF5350", neon: "#FF8A80", weight: 3.5, sect: "Estructurales" },
+  major:      { label: "Major Road",      color: "#FFB74D", neon: "#FFCC80", weight: 2.5, sect: "Estructurales" },
+  minor:      { label: "Minor Road",      color: "#BCAAA4", neon: "#D7CCC8", weight: 1.4, sect: "Distribución" },
+  local:      { label: "Local Street",    color: "#78909C", neon: "#B0BEC5", weight: 0.8, sect: "Distribución" },
+  pedestrian: { label: "Pedestrian Path", color: "#26C6DA", neon: "#4DD0E1", weight: 0.6, sect: "No motorizado" },
+  bike:       { label: "Bike Lane",       color: "#66BB6A", neon: "#81C784", weight: 0.9, sect: "No motorizado" },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -499,6 +513,15 @@ const groups = Object.fromEntries(
   })
 );
 
+// ══════════════════════════════════════════════════════════════════════════════
+// VIAL LAYER GROUPS — uno por categoría vial. Sin tier hiding (las vías están
+// presentes en todos los zooms igual que las calles del basemap).
+// ══════════════════════════════════════════════════════════════════════════════
+const vialGroups = Object.fromEntries(
+  Object.keys(VIAL_TYPES).map(k => [k, L.layerGroup().addTo(map)])
+);
+const vialCounts = Object.fromEntries(Object.keys(VIAL_TYPES).map(k => [k, 0]));
+
 // Helper: añadir polígono a la sub-capa correcta según su área (si es tier-based)
 function addPolygonToZone(zKey, polygon, areaM2) {
   if (tieredSmall[zKey] !== undefined && areaM2 < TIER_THRESHOLDS[zKey]) {
@@ -587,6 +610,73 @@ function renderRawElements(key, elements) {
     zoneCounts[zKey]++;
     count++;
   }
+  return count;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VIAL RENDER — pinta LineStrings de DATA_VIAL al canvas renderer.
+// bridge=yes → weight +0.5 para diferenciar visualmente puentes del Mississippi.
+//
+// Chunked async: 108k features bloquean el main thread ~5-10s si se pintan en
+// un solo loop sincrónico. Procesamos en batches de 5000 con yield a setTimeout
+// entre batches para que el browser no aparezca congelado.
+//
+// Anti-XSS: OSM names son contenido user-generated. Escapamos antes de inyectar
+// en innerHTML via bindPopup.
+// ══════════════════════════════════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function renderVialFeatures() {
+  if (typeof DATA_VIAL === "undefined") return 0;
+  const CHUNK = 5000;
+
+  // Flatten todos los features a [key, feature] para chunking parejo
+  const pending = [];
+  for (const [key, features] of Object.entries(DATA_VIAL)) {
+    if (!VIAL_TYPES[key]) continue;
+    for (const f of features) pending.push([key, f]);
+  }
+
+  let count = 0;
+  for (let i = 0; i < pending.length; i += CHUNK) {
+    const batch = pending.slice(i, i + CHUNK);
+    for (const [key, f] of batch) {
+      const meta = VIAL_TYPES[key];
+      const w = f.bridge ? meta.weight + 0.5 : meta.weight;
+      const line = L.polyline(f.coords, {
+        color: meta.neon,
+        weight: w,
+        opacity: 0.85,
+        lineCap: "round",
+        lineJoin: "round",
+      });
+      if (f.name) {
+        const safeName = escHtml(f.name);
+        line.bindPopup(
+          `<div style="min-width:140px">` +
+          `<b style="color:#ddd;font-size:12px">${safeName}</b><br>` +
+          `<span style="color:${meta.neon};font-size:11px">${meta.label}</span>` +
+          (f.bridge ? `<br><span style="color:#888;font-size:10px">puente</span>` : "") +
+          `</div>`,
+          { maxWidth: 240 }
+        );
+      }
+      vialGroups[key].addLayer(line);
+      vialCounts[key]++;
+      count++;
+    }
+    // Yield al browser entre batches
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  // Actualizar conteos de leyenda al terminar (la zoning legend ya se llenó antes)
+  updateLegendCounts();
   return count;
 }
 
@@ -707,6 +797,7 @@ async function loadAll() {
   // Bug #3 fix: usar datos pre-generados si están disponibles
   if (hasPrebuiltData()) {
     await loadFromPrebuilt();
+    renderVialOverlay();
     finalizeLoad(false);
     return;
   }
@@ -729,6 +820,7 @@ async function loadAll() {
         console.error(`[cache:${key}]`, e.message);
       }
     }
+    renderVialOverlay();
     finalizeLoad(anyError);
     return;
   }
@@ -766,7 +858,21 @@ async function loadAll() {
     console.log("[cache] guardado en localStorage para próximas 24h");
   }
 
+  renderVialOverlay();
   finalizeLoad(anyError);
+}
+
+// Helper idempotente: llamado desde los 3 paths de loadAll (prebuilt/cache/live)
+// para asegurar que el overlay vial se renderiza independientemente de qué fuente
+// alimentó el módulo de zonificación. Fire-and-forget — renderVialFeatures es
+// async chunked y no debe bloquear finalizeLoad.
+let _vialOverlayRendered = false;
+function renderVialOverlay() {
+  if (_vialOverlayRendered) return;
+  _vialOverlayRendered = true;
+  renderVialFeatures().then(n => {
+    if (n > 0) console.log(`[vial] rendered ${n.toLocaleString()} features`);
+  }).catch(e => console.error("[vial] render error:", e));
 }
 
 function finalizeLoad(anyError) {
@@ -798,6 +904,16 @@ for (const [key, z] of Object.entries(ZONES)) {
               `border-radius:2px;margin-right:7px;opacity:0.9;vertical-align:middle"></span>`;
   overlayMap[dot + z.label] = groups[key];
 }
+// Vial overlays — separador visual + 6 capas (Sesión 2)
+const vialSep = `<span style="display:inline-block;width:100%;border-top:1px solid #2a2d3d;` +
+                `margin:6px 0 4px;padding-top:4px;color:#666;font-size:10px;` +
+                `text-transform:uppercase;letter-spacing:1px">Vías</span>`;
+overlayMap[vialSep] = L.layerGroup();  // separador no-op
+for (const [key, v] of Object.entries(VIAL_TYPES)) {
+  const dot = `<span style="display:inline-block;width:14px;height:2px;background:${v.neon};` +
+              `margin-right:7px;vertical-align:middle"></span>`;
+  overlayMap[dot + v.label] = vialGroups[key];
+}
 L.control.layers(null, overlayMap, { collapsed: true, position: "topright" }).addTo(map);
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -819,6 +935,20 @@ legend.onAdd = () => {
       <span class="lcount zero" id="lcount-${key}">0</span>
     </div>`;
   }
+  // Sección Vías
+  html += `<h4 style="margin-top:14px">Red Vial</h4>`;
+  lastSect = "";
+  for (const [key, v] of Object.entries(VIAL_TYPES)) {
+    if (v.sect !== lastSect) {
+      html += `<div class="lsect">${v.sect}</div>`;
+      lastSect = v.sect;
+    }
+    html += `<div class="li">
+      <div class="ldot" style="background:${v.neon};width:14px;height:2px;border-radius:1px"></div>
+      <span class="lname">${v.label}</span>
+      <span class="lcount zero" id="vcount-${key}">0</span>
+    </div>`;
+  }
   div.innerHTML = html;
   return div;
 };
@@ -828,6 +958,12 @@ legend.addTo(map);
 function updateLegendCounts() {
   for (const [key, n] of Object.entries(zoneCounts)) {
     const el = document.getElementById("lcount-" + key);
+    if (!el) continue;
+    el.textContent = n.toLocaleString();
+    el.classList.toggle("zero", n === 0);
+  }
+  for (const [key, n] of Object.entries(vialCounts)) {
+    const el = document.getElementById("vcount-" + key);
     if (!el) continue;
     el.textContent = n.toLocaleString();
     el.classList.toggle("zero", n === 0);
