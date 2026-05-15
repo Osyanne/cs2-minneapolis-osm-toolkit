@@ -6,7 +6,7 @@
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![OSM Data](https://img.shields.io/badge/Data-OpenStreetMap-orange)
-![Tests](https://img.shields.io/badge/tests-61%20passing-success)
+![Tests](https://img.shields.io/badge/tests-72%20passing-success)
 
 ## What This Does
 
@@ -174,7 +174,7 @@ If you use AI assistants (Claude, Copilot, etc.) in your workflow, [bbox-mcp-ser
 |---|---|
 | **Bounding box** | `44.86,-93.38,45.05,-93.17` (Minneapolis + immediate borders) |
 | **Total polygons** | 81,732 |
-| **Tests** | 61 passing (50 classifier + 11 query sanity) |
+| **Tests** | 72 passing (50 classifier + 11 query sanity + 11 vial sanity) |
 | **Last extracted** | 2026-05-14 |
 
 ## License

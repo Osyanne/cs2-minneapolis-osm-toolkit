@@ -6,7 +6,7 @@
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![OSM Data](https://img.shields.io/badge/Data-OpenStreetMap-orange)
-![Tests](https://img.shields.io/badge/tests-61%20passing-success)
+![Tests](https://img.shields.io/badge/tests-72%20passing-success)
 
 > 🇬🇧 English version: [README.md](README.md)
 
@@ -128,7 +128,7 @@ Todas las decisiones de diseño documentadas en [METHODOLOGY.md](METHODOLOGY.md)
 |---|---|
 | **Bounding box** | `44.86,-93.38,45.05,-93.17` (Mineapolis + bordes inmediatos) |
 | **Polígonos totales** | 81,732 |
-| **Tests** | 61 pasando (50 clasificador + 11 sanidad de queries) |
+| **Tests** | 72 pasando (50 clasificador + 11 sanidad zoning + 11 sanidad vial) |
 | **Última extracción** | 2026-05-14 |
 
 ## Licencia
