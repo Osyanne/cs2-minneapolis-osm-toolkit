@@ -1198,7 +1198,7 @@ L.control.layers(null, overlayMap, { collapsed: true, position: "topright" }).ad
 const legend = L.control({ position: "bottomleft" });
 legend.onAdd = () => {
   const div = L.DomUtil.create("div", "legend");
-  let html = "<h4>CS2 Zonificación</h4>";
+  let html = `<h4><span class="master-toggle on" data-module="zoning" title="Toggle Zoning"></span>CS2 Zonificación</h4>`;
   let lastSect = "";
   for (const [key, z] of Object.entries(ZONES)) {
     if (z.sect !== lastSect) {
@@ -1212,7 +1212,7 @@ legend.onAdd = () => {
     </div>`;
   }
   // Sección Vías
-  html += `<h4 style="margin-top:14px">Red Vial</h4>`;
+  html += `<h4 style="margin-top:14px"><span class="master-toggle on" data-module="vial" title="Toggle Vial"></span>Red Vial</h4>`;
   lastSect = "";
   for (const [key, v] of Object.entries(VIAL_TYPES)) {
     if (v.sect !== lastSect) {
