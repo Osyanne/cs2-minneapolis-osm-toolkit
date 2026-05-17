@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from shared.overpass_client import query_with_retry
+from shared.registry import load_cities, get_city, CityNotFoundError, save_manifest_entry
 from zoning.classifiers import (
     classify_apartment,
     classify_residential_subtype,
@@ -79,27 +80,72 @@ def make_item(el: dict, coords: list, cs2_key: str) -> dict:
     }
 
 
+# ── City resolution ──────────────────────────────────────────────────────────
+
+def resolve_city_args(
+    city: str | None,
+    bbox: str | None,
+    slug: str | None,
+    cities_file: Path,
+) -> tuple[str, str]:
+    """Resuelve los argumentos CLI a (bbox, slug) finales.
+
+    Modos:
+    - --city <slug>: lee cities.json, deriva bbox del registro
+    - --bbox X --slug Y: escape hatch sin tocar registro
+    - Ambos --city y --bbox: --city gana (con warning)
+    - Solo --bbox: error (necesita --slug)
+    - Nada: error
+    """
+    if city is not None:
+        cities = load_cities(cities_file)
+        entry = get_city(cities, city)
+        s, w, n, e = entry["bbox"]
+        return (f"{s},{w},{n},{e}", city)
+    if bbox is not None:
+        if slug is None:
+            raise ValueError(
+                "Si pasas --bbox debes pasar también --slug "
+                "(usado para el output path visualizer/cities/<slug>/)"
+            )
+        return (bbox, slug)
+    raise ValueError("Debes pasar --city o --bbox+--slug")
+
+
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract OSM zoning data for CS2 (v3.0)")
+    parser = argparse.ArgumentParser(
+        description="Extract OSM zoning data → visualizer prebuilt JS"
+    )
+    parser.add_argument("--city", help="Slug de cities.json (ej. minneapolis, manhattan)")
+    parser.add_argument("--bbox", help="Escape hatch: bbox 's,w,n,e' (requiere --slug)")
+    parser.add_argument("--slug", help="Output slug cuando se usa --bbox sin --city")
     parser.add_argument(
-        "--bbox",
-        default=MINNEAPOLIS_BBOX,
-        help=f"Bounding box 'south,west,north,east' (default: {MINNEAPOLIS_BBOX})"
+        "--cities-file",
+        default=None,
+        help="Path a cities.json (default: <repo_root>/cities.json)",
     )
     parser.add_argument(
-        "--out",
-        default="../visualizer/datos_zonificacion.js",
-        help="Output .js file path"
+        "--visualizer-root",
+        default=None,
+        help="Path a visualizer/ (default: <repo_root>/visualizer)",
     )
     args = parser.parse_args()
 
-    bbox = args.bbox
-    out_path = Path(args.out)
+    repo_root = Path(__file__).resolve().parents[2]
+    cities_file = Path(args.cities_file) if args.cities_file else repo_root / "cities.json"
+    vis_root = Path(args.visualizer_root) if args.visualizer_root else repo_root / "visualizer"
+
+    bbox, slug = resolve_city_args(args.city, args.bbox, args.slug, cities_file)
+    out_dir = vis_root / "cities" / slug
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "datos_zonificacion.js"
+
     queries = build_queries(bbox)
 
-    print("CS2 Minneapolis Zoning Extractor v3.0 — CS2-aligned model")
+    print(f"CS2 OSM Toolkit — Zoning Extractor")
+    print(f"City         : {slug}")
     print(f"Bounding Box : {bbox}")
     print(f"Output       : {out_path}\n")
 
@@ -219,6 +265,15 @@ def main():
     out_path.write_text("\n".join(lines), encoding="utf-8")
     size_mb = out_path.stat().st_size / (1024 * 1024)
     print(f"\nDone. {out_path} — {size_mb:.1f} MB — {total} polygons")
+
+    save_manifest_entry(
+        visualizer_root=vis_root,
+        slug=slug,
+        module="zoning",
+        file_path=out_path,
+        features=total,
+    )
+    print(f"Manifest      : {vis_root / 'cities' / slug / 'manifest.json'}")
 
 
 if __name__ == "__main__":
