@@ -18,6 +18,7 @@ dev = [
 [project.scripts]
 extract-zoning = "zoning.extract:main"
 extract-vial   = "vial.extract:main"
+extract-services = "services.extract:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -25,4 +26,4 @@ build-backend = "hatchling.build"
 
 # Layout de sub-packages — hatchling empaqueta los directorios completos
 [tool.hatch.build.targets.wheel]
-packages = ["shared", "zoning", "vial"]
+packages = ["shared", "zoning", "vial", "services"]
