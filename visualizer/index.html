@@ -701,6 +701,7 @@ map.on("zoomend", () => {
     if (z >= TIER_MIN_ZOOM && !onGroup) groups[k].addLayer(tieredSmall[k]);
     else if (z < TIER_MIN_ZOOM && onGroup) groups[k].removeLayer(tieredSmall[k]);
   }
+  applyServicesZoomVisibility();
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -838,6 +839,101 @@ async function renderVialFeatures() {
   // Actualizar conteos de leyenda al terminar (la zoning legend ya se llenó antes)
   updateLegendCounts();
   return count;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SERVICES RENDER (Sesión 3) — polígonos siempre visibles + markers char en
+// círculo con tier-hiding (visibles en zoom ≥ SERVICES_POINT_ZOOM_THRESHOLD)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function makeServiceIcon(type) {
+  return L.divIcon({
+    className: "service-marker",
+    html: `<div style="background:${type.color};color:white;border:2px solid rgba(255,255,255,0.7);` +
+          `border-radius:50%;width:22px;height:22px;display:flex;align-items:center;` +
+          `justify-content:center;font-weight:700;font-size:11px;font-family:sans-serif;` +
+          `box-shadow:0 1px 3px rgba(0,0,0,0.6);">${type.char}</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -11],
+  });
+}
+
+function buildServicePopup(feat, key) {
+  const type = SERVICES_TYPES[key];
+  const name = feat.name ? escHtml(feat.name) : "<em>(sin nombre)</em>";
+  const subtype = feat.subtype ? escHtml(feat.subtype) : "—";
+  const tagsHtml = Object.entries(feat.tags || {})
+    .map(([k, v]) => `<div><b>${escHtml(k)}</b>=${escHtml(String(v))}</div>`)
+    .join("");
+  return `<div style="font-size:12px;min-width:160px">` +
+         `<div style="font-weight:700;color:${type.color};margin-bottom:4px;">${name}</div>` +
+         `<div style="color:#888;margin-bottom:6px;">${escHtml(type.label)} · ${subtype}</div>` +
+         `<details><summary style="cursor:pointer;color:#888;font-size:11px">Tags OSM</summary>` +
+         `<div style="font-family:monospace;font-size:10px;margin-top:4px;color:#aaa">${tagsHtml}</div>` +
+         `</details></div>`;
+}
+
+function renderServicesFeatures() {
+  if (window.__noServicesPrebuilt) {
+    console.warn("[services] No prebuilt data. Run extract-services.");
+    return 0;
+  }
+  if (typeof DATA_SERVICES_POLYGONS === "undefined" ||
+      typeof DATA_SERVICES_POINTS === "undefined") {
+    console.warn("[services] datos_servicios.js cargado pero sin constantes esperadas");
+    return 0;
+  }
+
+  let count = 0;
+
+  // Polígonos: siempre visibles
+  for (const [key, features] of Object.entries(DATA_SERVICES_POLYGONS)) {
+    const type = SERVICES_TYPES[key];
+    if (!type) continue;
+    for (const feat of features) {
+      const poly = L.polygon(feat.coords, {
+        color: type.color,
+        weight: 1.5,
+        opacity: 0.9,
+        fillColor: type.color,
+        fillOpacity: 0.35,
+        renderer: L.canvas(),
+      });
+      poly.bindPopup(buildServicePopup(feat, key), { maxWidth: 280 });
+      serviceGroups[key].addLayer(poly);
+      serviceCounts[key]++;
+      count++;
+    }
+  }
+
+  // Markers (puntos): controlados por tier-hiding
+  for (const [key, features] of Object.entries(DATA_SERVICES_POINTS)) {
+    const type = SERVICES_TYPES[key];
+    if (!type) continue;
+    for (const feat of features) {
+      const marker = L.marker(feat.coord, { icon: makeServiceIcon(type) });
+      marker.bindPopup(buildServicePopup(feat, key), { maxWidth: 280 });
+      servicePointLayers[key].push(marker);
+      serviceCounts[key]++;
+      count++;
+    }
+  }
+
+  applyServicesZoomVisibility();
+  return count;
+}
+
+function applyServicesZoomVisibility() {
+  const zoom = map.getZoom();
+  const showMarkers = zoom >= SERVICES_POINT_ZOOM_THRESHOLD;
+  for (const key of Object.keys(SERVICES_TYPES)) {
+    for (const marker of servicePointLayers[key]) {
+      const onGroup = serviceGroups[key].hasLayer(marker);
+      if (showMarkers && !onGroup) serviceGroups[key].addLayer(marker);
+      else if (!showMarkers && onGroup) serviceGroups[key].removeLayer(marker);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1102,6 +1198,7 @@ async function loadAll() {
   if (hasPrebuiltData()) {
     await loadFromPrebuilt();
     renderVialOverlay();
+    renderServicesOverlay();
     finalizeLoad(false);
     return;
   }
@@ -1125,6 +1222,7 @@ async function loadAll() {
       }
     }
     renderVialOverlay();
+    renderServicesOverlay();
     finalizeLoad(anyError);
     return;
   }
@@ -1163,6 +1261,7 @@ async function loadAll() {
   }
 
   renderVialOverlay();
+  renderServicesOverlay();
   finalizeLoad(anyError);
 }
 
@@ -1177,6 +1276,20 @@ function renderVialOverlay() {
   renderVialFeatures().then(n => {
     if (n > 0) console.log(`[vial] rendered ${n.toLocaleString()} features`);
   }).catch(e => console.error("[vial] render error:", e));
+}
+
+// Mismo patrón que renderVialOverlay — wrapper idempotente para servicios.
+// Sincrónico (no async/chunked) porque esperamos <1000 features.
+let _servicesOverlayRendered = false;
+function renderServicesOverlay() {
+  if (_servicesOverlayRendered) return;
+  _servicesOverlayRendered = true;
+  try {
+    const n = renderServicesFeatures();
+    if (n > 0) console.log(`[services] rendered ${n.toLocaleString()} features`);
+  } catch (e) {
+    console.error("[services] render error:", e);
+  }
 }
 
 function finalizeLoad(anyError) {
