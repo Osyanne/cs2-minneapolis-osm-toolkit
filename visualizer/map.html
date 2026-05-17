@@ -321,7 +321,7 @@ async function bootstrap() {
     }
     await Promise.all(modules.map(m => {
       if (!(m in moduleToFile)) return Promise.resolve();  // módulo desconocido → ignorar
-      const hash = CITY_MANIFEST.modules[m].hash;
+      const hash = CITY_MANIFEST.modules[m]?.hash ?? "";
       const src = `cities/${CITY_SLUG}/${moduleToFile[m]}?v=${hash}`;
       return loadScript(src);
     }));
@@ -1093,32 +1093,38 @@ function renderMap() {
       }
     }
 
-    // Vial — fire-and-forget (chunked async, 108k+ features en Minneapolis)
+    // Vial + Services — collect promises so finalizeLoad waits for both
+    const renderPromises = [];
+
     if (hasVial) {
       setP("vial", "loading", "⟳ Render…");
-      renderVialFeatures().then(n => {
-        bump(n);
-        setP("vial", "done", `✓ ${n.toLocaleString()}`);
-        console.log(`[vial] rendered ${n.toLocaleString()} features`);
-      }).catch(e => {
-        console.error("[vial] render error:", e);
-        setP("vial", "error", "✗ Error");
-      });
+      renderPromises.push(
+        renderVialFeatures().then(n => {
+          bump(n);
+          setP("vial", "done", `✓ ${n.toLocaleString()}`);
+          console.log(`[vial] rendered ${n.toLocaleString()} features`);
+        }).catch(e => {
+          console.error("[vial] render error:", e);
+          setP("vial", "error", "✗ Error");
+        })
+      );
     }
 
-    // Services — fire-and-forget (chunked async, ~2000 polígonos)
     if (hasServices) {
       setP("services", "loading", "⟳ Render…");
-      renderServicesFeatures().then(n => {
-        bump(n);
-        setP("services", "done", `✓ ${n.toLocaleString()}`);
-        console.log(`[services] rendered ${n.toLocaleString()} features`);
-      }).catch(e => {
-        console.error("[services] render error:", e);
-        setP("services", "error", "✗ Error");
-      });
+      renderPromises.push(
+        renderServicesFeatures().then(n => {
+          bump(n);
+          setP("services", "done", `✓ ${n.toLocaleString()}`);
+          console.log(`[services] rendered ${n.toLocaleString()} features`);
+        }).catch(e => {
+          console.error("[services] render error:", e);
+          setP("services", "error", "✗ Error");
+        })
+      );
     }
 
+    await Promise.all(renderPromises);  // wait for all async renders before finalizing
     finalizeLoad();
   }
 
