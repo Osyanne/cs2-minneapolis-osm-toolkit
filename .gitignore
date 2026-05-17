@@ -2,8 +2,10 @@
 # (post-refactor 2026-05-15: ver docs/specs/2026-05-15-toolkit-reorg-design.md)
 datos_zonificacion.js
 datos_vial.js
+datos_servicios.js
 visualizer/datos_zonificacion.js
 visualizer/datos_vial.js
+visualizer/datos_servicios.js
 visualizer/datos_msbuildings.js
 !data/sample_output.js
 
