@@ -4,7 +4,9 @@ Single source of truth para qué ciudades existen y qué módulos están generad
 `cities.json` define qué ciudades son seleccionables; `manifest.json` per-city
 declara qué módulos (zoning/vial/services) hay en disco para esa ciudad.
 """
+import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -69,11 +71,7 @@ def get_city(cities: dict, slug: str) -> dict:
 
 # ── Manifest IO ──────────────────────────────────────────────────────────────
 
-import hashlib
-from datetime import datetime, timezone
-
-
-VALID_MODULES = {"zoning", "vial", "services"}
+VALID_MODULES = frozenset({"zoning", "vial", "services"})
 
 
 def manifest_path(visualizer_root: Path, slug: str) -> Path:
@@ -93,8 +91,12 @@ def load_manifest(visualizer_root: Path, slug: str) -> dict | None:
 
 
 def hash_file(path: Path, length: int = 8) -> str:
-    """sha256 trunco a `length` chars para cache busting."""
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:length]
+    """sha256 trunco a `length` chars para cache busting (streaming)."""
+    h = hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()[:length]
 
 
 def save_manifest_entry(

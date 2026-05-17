@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from shared.registry import (
     load_cities, get_city, CityNotFoundError, RegistryError,
+    load_manifest, save_manifest_entry, manifest_path, hash_file, VALID_MODULES,
 )
 
 
@@ -96,11 +97,6 @@ def test_real_cities_json_minneapolis_bbox_unchanged():
     assert cities["minneapolis"]["bbox"] == [44.86, -93.38, 45.05, -93.17]
 
 
-from shared.registry import (
-    load_manifest, save_manifest_entry, manifest_path, hash_file, VALID_MODULES,
-)
-
-
 def test_manifest_path_structure(tmp_path):
     p = manifest_path(tmp_path, "manhattan")
     assert p == tmp_path / "cities" / "manhattan" / "manifest.json"
@@ -125,7 +121,7 @@ def test_load_manifest_malformed_raises(tmp_path):
     p = manifest_path(tmp_path, "manhattan")
     p.parent.mkdir(parents=True)
     p.write_text("not json")
-    with pytest.raises(RegistryError):
+    with pytest.raises(RegistryError, match="malformado"):
         load_manifest(tmp_path, "manhattan")
 
 
@@ -135,6 +131,7 @@ def test_save_manifest_entry_creates_file(tmp_path):
     manifest = save_manifest_entry(tmp_path, "manhattan", "zoning", data_file, 42)
     assert manifest["modules"]["zoning"]["features"] == 42
     assert len(manifest["modules"]["zoning"]["hash"]) == 8
+    assert manifest["modules"]["zoning"]["hash"] == hash_file(data_file)
     assert "generated_at" in manifest
     on_disk = load_manifest(tmp_path, "manhattan")
     assert on_disk == manifest
