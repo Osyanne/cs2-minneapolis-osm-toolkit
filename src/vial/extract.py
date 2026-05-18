@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from shared.overpass_client import query_with_retry
-from shared.registry import load_cities, get_city, CityNotFoundError, save_manifest_entry
+from shared.registry import load_cities, get_city, CityNotFoundError, RegistryError, save_manifest_entry
 from vial.classifiers import classify_highway
 from vial.zones import VIAL_LABELS, build_vial_query
 
@@ -119,7 +119,11 @@ def main():
     cities_file = Path(args.cities_file) if args.cities_file else repo_root / "cities.json"
     vis_root = Path(args.visualizer_root) if args.visualizer_root else repo_root / "visualizer"
 
-    bbox, slug = resolve_city_args(args.city, args.bbox, args.slug, cities_file)
+    try:
+        bbox, slug = resolve_city_args(args.city, args.bbox, args.slug, cities_file)
+    except (CityNotFoundError, RegistryError, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     out_dir = vis_root / "cities" / slug
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "datos_vial.js"

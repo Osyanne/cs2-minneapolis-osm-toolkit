@@ -790,7 +790,7 @@ function renderMap() {
 
   if (hasZoning)   injectPill("zoning",   "Zoning");
   if (hasVial)     injectPill("vial",      "Vial");
-  if (hasServices) injectPill("servicios", "Servicios");
+  if (hasServices) injectPill("services", "Servicios");
 
   // Módulo Transporte siempre presente pero deshabilitado (próximamente)
   {
@@ -821,7 +821,7 @@ function renderMap() {
     };
   }
   if (hasServices) {
-    MODULES.servicios = {
+    MODULES.services = {
       label: "Servicios",
       enabled: true,
       layerGroupsRef: () => Object.values(serviceGroups),
@@ -1035,7 +1035,7 @@ function renderMap() {
     }
 
     if (hasServices) {
-      html += `<h4 style="margin-top:14px"><span class="master-toggle on" data-module="servicios" title="Toggle Servicios"></span>Servicios</h4>`;
+      html += `<h4 style="margin-top:14px"><span class="master-toggle on" data-module="services" title="Toggle Servicios"></span>Servicios</h4>`;
       for (const [key, s] of Object.entries(SERVICES_TYPES)) {
         html += `<div class="li">
           <div class="ldot" style="background:${s.color};color:white;font-size:8px;font-weight:700;text-align:center;line-height:10px;border-radius:50%">${s.char}</div>
