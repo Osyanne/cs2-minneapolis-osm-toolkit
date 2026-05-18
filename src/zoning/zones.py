@@ -213,4 +213,18 @@ out body geom;
 );
 out body geom;
 """.strip(),
+
+        # CIVIC_AMENITIES — nodes amenity=school/hospital/church/etc.
+        # Usado para amenity cross-reference (v3.3.7): si un building clasificado
+        # por heurística de área está cerca (≤30m) de un node con uno de estos
+        # tags, se reclasifica a com_low (no industrial). Reduce falsos positivos
+        # "industrial" en pueblos pequeños donde escuelas e iglesias tienen
+        # footprints ≥1500 m².
+        "civic_amenities": f"""
+[out:json][timeout:180];
+(
+  node["amenity"~"^(school|university|college|kindergarten|hospital|clinic|doctors|dentist|pharmacy|place_of_worship|townhall|courthouse|public_building|police|fire_station|post_office|library|community_centre|social_facility|theatre|arts_centre|cinema|funeral_hall|crematorium)$"]({bbox});
+);
+out body;
+""".strip(),
     }

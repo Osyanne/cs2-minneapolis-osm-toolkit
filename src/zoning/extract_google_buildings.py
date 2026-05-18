@@ -50,6 +50,7 @@ from shared.registry import (
 )
 from zoning.classifiers import (
     classify_generic_building_by_area,
+    is_civic_amenity_tag,
     LANDUSE_TO_CS2_KEY,
 )
 from zoning.zones import CS2_LABELS, build_queries
@@ -166,6 +167,29 @@ def _make_polygon(coords) -> Polygon | None:
     return None
 
 
+def fetch_civic_amenities(bbox_str: str) -> list:
+    """
+    Pulls civic amenity nodes (school/hospital/church/etc.) via Overpass.
+    Returns list of shapely.Point (lon, lat) — usado para amenity cross-reference.
+    """
+    from shapely.geometry import Point as _ShapelyPoint
+    queries = build_queries(bbox_str)
+    if "civic_amenities" not in queries:
+        return []
+    print("  fetching civic_amenities...")
+    result = query_with_retry(queries["civic_amenities"], "civic_amenities")
+    points = []
+    for el in result.get("elements", []):
+        if el.get("type") != "node":
+            continue
+        lat = el.get("lat")
+        lon = el.get("lon")
+        if lat is None or lon is None:
+            continue
+        points.append(_ShapelyPoint(lon, lat))
+    return points
+
+
 def fetch_landuse_polygons(bbox_str: str) -> list[tuple[Polygon, str]]:
     """
     Pulls landuse polygons from OSM (4 queries) y devuelve lista
@@ -215,9 +239,11 @@ def classify_building(
     tree: STRtree | None,
     landuse_geoms: list,
     landuse_keys: list,
+    amenity_tree: STRtree | None = None,
+    amenity_points: list | None = None,
 ) -> tuple[str, str]:
     """
-    Returns (cs2_key, method) donde method ∈ {"landuse", "area"}.
+    Returns (cs2_key, method) donde method ∈ {"landuse", "area", "amenity"}.
     Algoritmo idéntico a _process_generic_buildings en zoning.extract.
     """
     if tree is not None:
@@ -231,7 +257,46 @@ def classify_building(
                         return (landuse_keys[idx], "landuse")
         except Exception:
             pass
+    # Sin landuse match: heurística de área pura, pero antes verifica amenity proximity.
+    if amenity_tree is not None and amenity_points is not None:
+        if _has_civic_amenity_near_pt(poly.centroid, amenity_tree, amenity_points, max_dist_m=30.0):
+            return ("com_low", "amenity")
     return (classify_generic_building_by_area(area_m2), "area")
+
+
+def _has_civic_amenity_near_pt(
+    centroid,
+    amenity_tree: STRtree,
+    amenity_points: list,
+    max_dist_m: float = 30.0,
+) -> bool:
+    """
+    Misma lógica que _has_civic_amenity_near en zoning.extract — duplicada
+    porque las dependencias cruzadas entre los extractors complicarían el import.
+    """
+    import math
+    lat0 = centroid.y
+    cos_lat = math.cos(math.radians(lat0))
+    deg_per_m_lat = 1.0 / 111_320.0
+    deg_per_m_lon = 1.0 / (111_320.0 * max(cos_lat, 0.01))
+    buf_lat = deg_per_m_lat * max_dist_m
+    buf_lon = deg_per_m_lon * max_dist_m
+    from shapely.geometry import box
+    bbox = (
+        centroid.x - buf_lon, centroid.y - buf_lat,
+        centroid.x + buf_lon, centroid.y + buf_lat,
+    )
+    candidates = amenity_tree.query(box(*bbox))
+    for cand in candidates:
+        if hasattr(cand, "__index__"):
+            pt = amenity_points[int(cand)]
+        else:
+            pt = cand
+        dx_m = (pt.x - centroid.x) * 111_320.0 * cos_lat
+        dy_m = (pt.y - centroid.y) * 111_320.0
+        if (dx_m * dx_m + dy_m * dy_m) <= (max_dist_m * max_dist_m):
+            return True
+    return False
 
 
 # ── Streaming + classification ───────────────────────────────────────────────
@@ -245,18 +310,21 @@ def stream_classify_csv(
     landuse_keys: list,
     output: dict,
     starting_id: int,
-) -> tuple[int, int, int]:
+    amenity_tree: STRtree | None = None,
+    amenity_points: list | None = None,
+) -> tuple[int, int, int, int]:
     """
     Stream-parse CSV.gz, filter por bbox + confidence, classify, append a output.
 
     Cada row del CSV (sin header) tiene columnas:
         latitude,longitude,area_in_meters,confidence,geometry,full_plus_code
 
-    Returns (added_count, by_landuse, by_area).
+    Returns (added_count, by_landuse, by_area, by_amenity).
     """
     south, west, north, east = bbox
     by_landuse = 0
     by_area = 0
+    by_amenity = 0
     added = 0
     next_id = starting_id
 
@@ -284,10 +352,13 @@ def stream_classify_csv(
                 continue
 
             cs2_key, method = classify_building(
-                poly, area_m2, tree, landuse_geoms, landuse_keys
+                poly, area_m2, tree, landuse_geoms, landuse_keys,
+                amenity_tree=amenity_tree, amenity_points=amenity_points,
             )
             if method == "landuse":
                 by_landuse += 1
+            elif method == "amenity":
+                by_amenity += 1
             else:
                 by_area += 1
 
@@ -309,7 +380,7 @@ def stream_classify_csv(
             next_id += 1
             added += 1
 
-    return (added, by_landuse, by_area)
+    return (added, by_landuse, by_area, by_amenity)
 
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
@@ -369,13 +440,17 @@ def main():
     print(f"\n[2/4] Downloading cells (cache: {cache})...")
     cell_paths = [download_cell(token, cache) for token in cells]
 
-    # 3. Landuse polygons (Overpass)
-    print(f"\n[3/4] Fetching landuse polygons from OSM...")
+    # 3. Landuse polygons + civic amenities (Overpass)
+    print(f"\n[3/4] Fetching landuse polygons + civic amenities from OSM...")
     landuse_polys = fetch_landuse_polygons(bbox_str)
     print(f"      {len(landuse_polys)} landuse polygons total")
     landuse_geoms = [lp[0] for lp in landuse_polys]
     landuse_keys = [lp[1] for lp in landuse_polys]
     tree = STRtree(landuse_geoms) if landuse_geoms else None
+
+    amenity_points = fetch_civic_amenities(bbox_str)
+    print(f"      {len(amenity_points)} civic amenity nodes")
+    amenity_tree = STRtree(amenity_points) if amenity_points else None
 
     # 4. Stream + classify
     print(f"\n[4/4] Streaming Google buildings + classifying...")
@@ -383,20 +458,24 @@ def main():
     total_added = 0
     total_by_landuse = 0
     total_by_area = 0
+    total_by_amenity = 0
     for path in cell_paths:
         print(f"  processing {path.name}...")
-        added, by_landuse, by_area = stream_classify_csv(
+        added, by_landuse, by_area, by_amenity = stream_classify_csv(
             path, bbox, args.min_confidence,
             tree, landuse_geoms, landuse_keys,
             output, starting_id=total_added,
+            amenity_tree=amenity_tree, amenity_points=amenity_points,
         )
         print(
             f"    +{added} buildings "
-            f"(landuse: {by_landuse}, area heuristic: {by_area})"
+            f"(landuse: {by_landuse}, area: {by_area}, "
+            f"amenity-override: {by_amenity})"
         )
         total_added += added
         total_by_landuse += by_landuse
         total_by_area += by_area
+        total_by_amenity += by_amenity
 
     # Summary
     total = sum(len(v) for v in output.values())
@@ -404,8 +483,9 @@ def main():
     for key in CS2_LABELS:
         print(f"  {key:<16}: {len(output.get(key, [])):>6}  ({CS2_LABELS[key]})")
     print(f"  {'TOTAL':<16}: {total:>6}")
-    print(f"  classified by landuse: {total_by_landuse}")
-    print(f"  classified by area:    {total_by_area}")
+    print(f"  classified by landuse:        {total_by_landuse}")
+    print(f"  classified by area:           {total_by_area}")
+    print(f"  reclassified by amenity:      {total_by_amenity}")
 
     # Write output
     ts = datetime.now(timezone.utc).isoformat()
@@ -414,7 +494,7 @@ def main():
         f"// {args.city} — Google Open Buildings v3 augmentation",
         f"// Bbox: {bbox_str}",
         f"// Min confidence: {args.min_confidence}",
-        f"// Total buildings: {total}  (landuse: {total_by_landuse}, area: {total_by_area})",
+        f"// Total buildings: {total}  (landuse: {total_by_landuse}, area: {total_by_area}, amenity-override: {total_by_amenity})",
         f"// S2 cells: {','.join(cells)}",
         "",
     ]

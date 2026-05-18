@@ -6,8 +6,8 @@ from zoning.zones import build_queries, CS2_LABELS
 
 BBOX = "44.86,-93.38,45.05,-93.17"
 
-# Las 9 source queries del modelo CS2-aligned (v3.3.4 añadió generic_buildings
-# para zonas con cobertura OSM sparse — building=yes sin clasificar).
+# Las 10 source queries del modelo CS2-aligned (v3.3.7 añadió civic_amenities
+# para amenity cross-reference; v3.3.4 añadió generic_buildings).
 EXPECTED_SOURCE_KEYS = {
     "mixed_apartments",
     "apartments",
@@ -18,6 +18,7 @@ EXPECTED_SOURCE_KEYS = {
     "industrial",
     "parking",
     "generic_buildings",
+    "civic_amenities",
 }
 
 # Las 13 zonas CS2 del modelo realineado
@@ -43,9 +44,15 @@ def test_all_queries_contain_bbox():
 
 
 def test_all_queries_have_out_directive():
+    """Toda query Overpass debe terminar con un 'out' directive."""
     queries = build_queries(BBOX)
     for key, q in queries.items():
-        assert "out body geom" in q, f"Query '{key}' no tiene 'out body geom'"
+        # civic_amenities solo trae nodes → 'out body' (sin geom porque nodes no
+        # tienen geometry separada). Las demás traen ways/relations → 'out body geom'.
+        if key == "civic_amenities":
+            assert "out body" in q, f"Query '{key}' no tiene 'out body'"
+        else:
+            assert "out body geom" in q, f"Query '{key}' no tiene 'out body geom'"
 
 
 def test_all_queries_have_timeout():
@@ -119,3 +126,14 @@ def test_generic_buildings_query_targets_building_yes():
     # NO debe traer building=apartments u otros tipos ya capturados
     assert 'building"="apartments"' not in q
     assert 'building"="house"' not in q
+
+
+def test_civic_amenities_query_captures_civic_tags():
+    """civic_amenities recoge nodes amenity=school/hospital/church/etc."""
+    q = build_queries(BBOX)["civic_amenities"]
+    # Debe traer nodes (no ways) — amenity POIs son típicamente nodes
+    assert 'node["amenity"' in q
+    # Debe incluir las categorías clave
+    for amenity in ("school", "hospital", "place_of_worship", "library",
+                    "fire_station", "kindergarten"):
+        assert amenity in q, f"civic_amenities query falta '{amenity}'"

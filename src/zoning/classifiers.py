@@ -233,3 +233,32 @@ def classify_generic_building_by_area(area_m2: float) -> str:
     if area_m2 < 1500:
         return "res_med"
     return "industrial"
+
+
+# ── Amenity cross-reference (v3.3.7) ────────────────────────────────────────
+
+# Tags amenity=* que sugieren uso civic/community (NO industrial, NO residential).
+# Si un building está cerca (≤30m) de un node con uno de estos tags, su clasificación
+# heurística por área se sobreescribe a com_low (Low Density Business) que es el
+# match más cercano en CS2 — no hay zona civic explícita en el modelo CS2.
+CIVIC_AMENITIES = frozenset({
+    # Educación
+    "school", "university", "college", "kindergarten",
+    # Salud
+    "hospital", "clinic", "doctors", "dentist", "pharmacy",
+    # Religión
+    "place_of_worship",
+    # Gobierno / Cívico
+    "townhall", "courthouse", "public_building",
+    "police", "fire_station", "post_office",
+    # Cultura / Comunidad
+    "library", "community_centre", "social_facility",
+    "theatre", "arts_centre", "cinema",
+    # Funerario / Cemeterios
+    "funeral_hall", "crematorium",
+})
+
+
+def is_civic_amenity_tag(amenity_value: str) -> bool:
+    """True si el valor de amenity=* es civic/community."""
+    return (amenity_value or "").lower() in CIVIC_AMENITIES

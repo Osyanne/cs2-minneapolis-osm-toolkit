@@ -52,5 +52,14 @@
     "zoom": 12,
     "tagline": "Corazón de Noruega — fiordo y casco antiguo",
     "locale": "es"
+  },
+  "bacau_ro": {
+    "display_name": "Bacau, Romania",
+    "country": "Romania",
+    "bbox": [46.454889, 26.788788, 46.643308, 27.077866],
+    "center": [46.5491, 26.9333],
+    "zoom": 12,
+    "tagline": "Bloques soviéticos con inspiración occidental",
+    "locale": "es"
   }
 }

@@ -37,6 +37,7 @@ from zoning.classifiers import (
     classify_office,
     classify_parking,
     classify_generic_building_by_area,
+    is_civic_amenity_tag,
     polygon_area_m2,
     LANDUSE_TO_CS2_KEY,
 )
@@ -171,34 +172,110 @@ def _collect_landuse_polygons(raw: dict) -> list:
     return polys
 
 
+def _build_amenity_tree(raw: dict):
+    """
+    Construye STRtree de civic amenity points (nodes) desde raw["civic_amenities"].
+
+    Returns (STRtree | None, list[Point] | None). Both None si no hay amenities.
+    """
+    from shapely.geometry import Point as _ShapelyPoint
+    from shapely.strtree import STRtree
+
+    elements = raw.get("civic_amenities", [])
+    points = []
+    for el in elements:
+        if el.get("type") != "node":
+            continue
+        lat = el.get("lat")
+        lon = el.get("lon")
+        if lat is None or lon is None:
+            continue
+        # shapely: (x=lon, y=lat)
+        points.append(_ShapelyPoint(lon, lat))
+
+    if not points:
+        return (None, None)
+    return (STRtree(points), points)
+
+
+def _has_civic_amenity_near(
+    centroid,
+    amenity_tree,
+    amenity_points,
+    max_dist_m: float = 30.0,
+) -> bool:
+    """
+    True si hay un node civic amenity dentro de max_dist_m del centroide.
+
+    Usa STRtree para query rápido + check de distancia equirectangular en metros.
+    """
+    if amenity_tree is None or amenity_points is None:
+        return False
+    # Convertir max_dist_m a degrees al latitude del centroide. Aproximación
+    # equirectangular: 1 grado lat ≈ 111320 m; 1 grado lon ≈ 111320 m * cos(lat).
+    import math
+    lat0 = centroid.y
+    cos_lat = math.cos(math.radians(lat0))
+    deg_per_m_lat = 1.0 / 111_320.0
+    deg_per_m_lon = 1.0 / (111_320.0 * max(cos_lat, 0.01))
+    # Buffer del centroide en grados (envelope cuadrado conservador)
+    buf_lat = deg_per_m_lat * max_dist_m
+    buf_lon = deg_per_m_lon * max_dist_m
+    # shapely envelope: usar bounding box query
+    bbox = (
+        centroid.x - buf_lon, centroid.y - buf_lat,
+        centroid.x + buf_lon, centroid.y + buf_lat,
+    )
+    from shapely.geometry import box
+    candidates = amenity_tree.query(box(*bbox))
+    for cand in candidates:
+        # shapely 2.x: indices; shapely 1.x: geometries
+        if hasattr(cand, "__index__"):
+            pt = amenity_points[int(cand)]
+        else:
+            pt = cand
+        # Distancia equirectangular en metros
+        dx_m = (pt.x - centroid.x) * 111_320.0 * cos_lat
+        dy_m = (pt.y - centroid.y) * 111_320.0
+        if (dx_m * dx_m + dy_m * dy_m) <= (max_dist_m * max_dist_m):
+            return True
+    return False
+
+
 def _process_generic_buildings(
     raw: dict,
     output: dict,
     seen_ids: set,
     add_fn,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, int]:
     """
     Procesa raw["generic_buildings"] (building=yes) y los clasifica vía
     spatial join contra landuse polygons + heurística de área como fallback.
+    Después aplica amenity cross-reference: si el building se clasificó por
+    área pura Y hay un node civic amenity (school/hospital/church/...) dentro
+    de 30m del centroide, se reclasifica a com_low (no industrial).
 
     Returns:
-      (total_added, classified_by_landuse, classified_by_area)
+      (total_added, by_landuse, by_area, by_amenity_override)
     """
     from shapely.geometry import Polygon as _ShapelyPolygon
     from shapely.strtree import STRtree
 
     elements = raw.get("generic_buildings", [])
     if not elements:
-        return (0, 0, 0)
+        return (0, 0, 0, 0)
 
     landuse_polys = _collect_landuse_polygons(raw)
     landuse_geoms = [lp[0] for lp in landuse_polys]
     landuse_keys = [lp[1] for lp in landuse_polys]
     tree = STRtree(landuse_geoms) if landuse_geoms else None
 
+    amenity_tree, amenity_points = _build_amenity_tree(raw)
+
     added = 0
     by_landuse = 0
     by_area = 0
+    by_amenity = 0
 
     for el in elements:
         if el["id"] in seen_ids:
@@ -247,7 +324,17 @@ def _process_generic_buildings(
             area = polygon_area_m2(coords)
             cs2_key = classify_generic_building_by_area(area)
             method = "area"
-            by_area += 1
+            # Amenity cross-reference (v3.3.7): si hay un civic amenity cerca,
+            # promote el building a com_low (no es industrial/residencial puro,
+            # es civic). Solo aplica si la clasificación fue por área pura.
+            if _has_civic_amenity_near(
+                building_poly.centroid, amenity_tree, amenity_points, max_dist_m=30.0
+            ):
+                cs2_key = "com_low"
+                method = "amenity"
+                by_amenity += 1
+            else:
+                by_area += 1
 
         if add_fn(el, cs2_key):
             # Inject method field on the item we just appended. Items added by
@@ -257,7 +344,7 @@ def _process_generic_buildings(
             output[cs2_key][-1]["method"] = method
             added += 1
 
-    return (added, by_landuse, by_area)
+    return (added, by_landuse, by_area, by_amenity)
 
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
@@ -317,6 +404,7 @@ def main():
         "industrial",
         "parking",
         "generic_buildings",
+        "civic_amenities",
     ]
     print(f"[1/2] Downloading {len(SOURCE_KEYS)} source queries from Overpass...")
     raw: dict[str, list] = {}
@@ -395,13 +483,17 @@ def main():
         suffix = classify_parking(el.get("tags") or {})
         add(el, f"prk_{suffix}")
 
-    # 8. Generic buildings (building=yes) — spatial join contra landuse + area heuristic.
+    # 8. Generic buildings (building=yes) — spatial join contra landuse + area heuristic
+    #    + amenity cross-reference (v3.3.7).
     #    Cobertura sparse de OSM (small-town LATAM/África/Asia) suele tener la mayoría
     #    de los edificios mapeados como building=yes sin clasificación. Esta pasada los
     #    recoge: si caen dentro de un polígono landuse=* conocido, se clasifican por
-    #    él; si no, heurística defensiva por área (≤300 m² casa, ≤1500 m² mediano,
-    #    sino industrial).
-    generic_added, generic_by_landuse, generic_by_area = _process_generic_buildings(
+    #    él; si no, heurística por área. Tras eso, si el building está cerca (≤30m) de
+    #    una amenity civic (school/hospital/church/etc.) Y se clasificó por área pura,
+    #    se reclasifica a com_low (no industrial) para reducir falsos positivos típicos.
+    (
+        generic_added, generic_by_landuse, generic_by_area, generic_by_amenity
+    ) = _process_generic_buildings(
         raw, output, seen_ids, add
     )
 
@@ -413,7 +505,8 @@ def main():
     print(f"  {'skipped':<16}: {skipped:>6}")
     print(
         f"  {'generic+':<16}: {generic_added:>6}  "
-        f"(landuse: {generic_by_landuse}, area heur: {generic_by_area})"
+        f"(landuse: {generic_by_landuse}, area: {generic_by_area}, "
+        f"amenity-override: {generic_by_amenity})"
     )
     print(f"  {'TOTAL':<16}: {total:>6}")
 
