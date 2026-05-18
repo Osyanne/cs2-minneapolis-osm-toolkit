@@ -49,43 +49,47 @@ Keep bboxes reasonably sized. A city's urban core (not the entire metro region) 
 
 Open a terminal inside the `src/` folder. If you haven't done `uv sync` yet, do that first.
 
+**Important (v3.3):** The CLI requires either `--city <slug>` (looks up bbox from `cities.json` registry) or `--bbox X --slug Y` together (escape hatch). Running `--bbox` alone errors out. Pick the slug you want your city to have under `visualizer/cities/<slug>/`.
+
 **Zoning (building polygons classified into CS2 zone types):**
 
-    uv run extract-zoning --bbox "south,west,north,east"
+    uv run extract-zoning --bbox "south,west,north,east" --slug your_slug
 
 This is the slowest extractor — 1–5 minutes depending on city size and how busy the Overpass servers are. It downloads building data and classifies each polygon into one of the 11 CS2 zone types.
 
-Output: `visualizer/datos_zonificacion.js`
+Output: `visualizer/cities/your_slug/datos_zonificacion.js`
 
 **Road network (roads classified into CS2 road categories):**
 
-    uv run extract-vial --bbox "south,west,north,east"
+    uv run extract-vial --bbox "south,west,north,east" --slug your_slug
 
 Usually under a minute. Classifies all OSM `highway=*` ways into the 6 CS2 road categories.
 
-Output: `visualizer/datos_vial.js`
+Output: `visualizer/cities/your_slug/datos_vial.js`
 
 **Services (hospitals, schools, fire stations, parks, police/admin):**
 
-    uv run extract-services --bbox "south,west,north,east"
+    uv run extract-services --bbox "south,west,north,east" --slug your_slug
 
 Usually under a minute. Returns points and polygons for 5 service buckets aligned to CS2's service tabs.
 
-Output: `visualizer/datos_servicios.js`
+Output: `visualizer/cities/your_slug/datos_servicios.js`
 
-You can run all three for the same bbox, or just the ones you need. The visualizer handles any combination.
+You can run all three for the same slug, or just the ones you need. Each extract updates the city's `manifest.json` preserving other modules already generated.
 
 **Example for Madison, WI:**
 
-    uv run extract-zoning --bbox "43.05,-89.50,43.15,-89.30"
-    uv run extract-vial --bbox "43.05,-89.50,43.15,-89.30"
-    uv run extract-services --bbox "43.05,-89.50,43.15,-89.30"
+    uv run extract-zoning --bbox "43.05,-89.50,43.15,-89.30" --slug madison
+    uv run extract-vial --bbox "43.05,-89.50,43.15,-89.30" --slug madison
+    uv run extract-services --bbox "43.05,-89.50,43.15,-89.30" --slug madison
+
+(Note: `madison` is already in `cities.json`. To use it without `--bbox`, simply run `uv run extract-zoning --city madison`.)
 
 ---
 
 ## Step 3: Open the Visualizer
 
-Go to the `visualizer/` folder in your file explorer and double-click `index.html`. The map centers automatically on the extent of your data.
+Run `uv run generate-landing` once to add your new city to the landing page. Then go to the `visualizer/` folder and double-click `index.html` — your city will appear as a card in the gallery. Click it to open `map.html?city=your_slug`. The map centers automatically using the bbox/center from your extraction.
 
 If the map appears blank or shows an error, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
