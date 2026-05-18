@@ -1,53 +1,76 @@
-# CS2 Minneapolis OSM — Visualizer
+# CS2 OSM Toolkit — Visualizer (v3.3)
 
-Visualizador interactivo Leaflet del mapa de Minneapolis con overlays de zonificación y red vial.
+Visualizador interactivo Leaflet **multi-city** del toolkit OSM para Cities: Skylines 2. Soporta 5 ciudades curadas: Minneapolis (zoning + vial + services) y Manhattan / Tokyo / Amsterdam / Madison (zoning only).
 
 ## Quick start
 
 ```bash
-# Servir el visualizer en localhost:8080
+# Servir el visualizer en localhost:8000
 cd visualizer
-python -m http.server 8080
+python -m http.server 8000
 ```
 
-Abrir en navegador: **http://localhost:8080/index.html**
+Dos puntos de entrada:
 
-## Obtener prebuilts (datos pre-generados)
+- **Landing con galería** — http://localhost:8000/index.html — muestra las 5 ciudades disponibles, click en card para abrir el mapa
+- **Mapa directo de una ciudad** — http://localhost:8000/map.html?city=minneapolis (también `manhattan`, `tokyo`, `amsterdam`, `madison`)
 
-Los archivos `datos_zonificacion.js` (~28 MB) y `datos_vial.js` (~25 MB) NO están commiteados en el repo (son binarios grandes). Tienes dos opciones:
+Si abrís `map.html` sin `?city=`, redirige a la landing automáticamente. Slug inválido también redirige.
 
-### Opción A: Descargar desde GitHub Releases (recomendado)
+## Prebuilts
 
-1. Ir a https://github.com/Osyanne/cs2-minneapolis-osm-toolkit/releases
-2. Descargar `datos_zonificacion.js` y `datos_vial.js` desde la última release
-3. Colocarlos en este directorio (`visualizer/`)
+Los archivos de datos (`datos_zonificacion.js`, `datos_vial.js`, `datos_servicios.js`) **ya están commiteados** en el repo bajo `visualizer/cities/<slug>/`. **No hay que descargar nada.**
 
-### Opción B: Regenerar localmente
+Estructura:
+
+```
+visualizer/cities/
+├── minneapolis/    # full: zoning + vial + services
+├── manhattan/      # zoning only
+├── tokyo/          # zoning only
+├── amsterdam/      # zoning only
+└── madison/        # zoning only
+```
+
+Cada directorio incluye un `manifest.json` que declara qué módulos están presentes + sus hashes sha256 para cache busting. El visualizer lo lee primero y solo inyecta scripts para los módulos disponibles — por eso las 4 ciudades nuevas no muestran controles de Vial ni Servicios en la leyenda.
+
+### Regenerar datos localmente (opcional)
+
+Si querés re-extraer datos frescos desde OpenStreetMap:
 
 ```bash
 cd ../src
-uv run extract-zoning    # ~3-5 min  → ../visualizer/datos_zonificacion.js
-uv run extract-vial      # ~30s      → ../visualizer/datos_vial.js
+uv run extract-zoning   --city minneapolis    # ~3-5 min  → cities/minneapolis/datos_zonificacion.js
+uv run extract-vial     --city minneapolis    # ~30s      → cities/minneapolis/datos_vial.js
+uv run extract-services --city minneapolis    # ~1 min    → cities/minneapolis/datos_servicios.js
 ```
 
-Los archivos se escriben directamente a `visualizer/`.
+Reemplazá `minneapolis` con cualquier slug del registro (`cities.json`). Cada extract actualiza el `manifest.json` correspondiente preservando los módulos ya generados (podés agregar vial a Manhattan sin perder su zoning).
 
-## Modo sin prebuilts
+Para ciudades fuera del registro: `uv run extract-zoning --bbox "s,w,n,e" --slug mi_ciudad` (escape hatch sin tocar `cities.json`).
 
-Si abres el visualizer sin los prebuilts, el código JavaScript detecta la ausencia automáticamente y:
+### Regenerar landing
 
-- **Zonificación**: cae a modo live Overpass (descarga las 9 queries en paralelo, tarda ~2-3 min la primera vez, se cachea 24h en localStorage)
-- **Red Vial**: simplemente no se renderea — el visualizer funciona pero solo con el módulo zoning
+Si agregás o modificás ciudades:
+
+```bash
+cd ../src
+uv run generate-landing    # regenera visualizer/index.html + copia cities.json
+```
 
 ## Controles de UI
 
-- **Module pills (arriba derecha)**: toggle ON/OFF de cada módulo entero (Zoning / Vial / Servicios / Transporte)
-- **Master toggle en leyenda** (●): espejo de las pills, mismo efecto
-- **Control "Fondo"** (aparece si hay módulos en OFF): Oculto / Atenuado / Completo
-- **Layer Control** (esquina arriba derecha): toggle granular por zona / categoría vial individual
+- **Module pills (arriba derecha)** — toggle ON/OFF de cada módulo presente (Zoning / Vial / Servicios). Solo aparecen los módulos que tiene esa ciudad
+- **Master toggle en leyenda** (●) — espejo de las pills, mismo efecto
+- **Control "Fondo"** (aparece si hay módulos en OFF) — Oculto / Atenuado / Completo
+- **Layer Control** (esquina arriba derecha) — toggle granular por zona / categoría vial individual
 
 ## Persistencia
 
-El estado de las pills + el modo de fondo se guarda en `localStorage` (clave `cs2-mineapolis-view-state-v1`). La próxima vez que abras el visualizer recuerda tu última vista.
+El estado de las pills + el modo de fondo se guarda en `localStorage` con clave **scoped por ciudad**: `cs2-view-state-{slug}-v1` (ej. `cs2-view-state-minneapolis-v1`). Cada ciudad recuerda independientemente su última vista — cambiar de Manhattan a Tokyo no pisa la configuración de la otra.
 
-Para reset: abre DevTools → Application → Local Storage → borrar la clave.
+Para reset de una ciudad: DevTools → Application → Local Storage → borrar la clave correspondiente.
+
+## ¿Tu ciudad no está?
+
+Abrí un [City Request issue](https://github.com/Osyanne/cs2-minneapolis-osm-toolkit/issues/new?template=city-request.yml) con el bbox + nombre. Generamos el prebuilt de zoning y publicamos (~30-60 min turnaround si está activo). Vial + services son ampliación on-demand si la ciudad acumula múltiples requests.
