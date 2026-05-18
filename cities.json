@@ -8,24 +8,6 @@
     "tagline": "Ciudad hero — fully featured",
     "locale": "es"
   },
-  "manhattan": {
-    "display_name": "Manhattan, NYC",
-    "country": "USA",
-    "bbox": [40.700, -74.020, 40.880, -73.910],
-    "center": [40.790, -73.965],
-    "zoom": 12,
-    "tagline": "Grilla densa de rascacielos",
-    "locale": "es"
-  },
-  "tokyo": {
-    "display_name": "Tokyo (Central)",
-    "country": "Japan",
-    "bbox": [35.620, 139.680, 35.740, 139.840],
-    "center": [35.680, 139.760],
-    "zoom": 12,
-    "tagline": "Tejido urbano hiper-denso y mixto",
-    "locale": "es"
-  },
   "amsterdam": {
     "display_name": "Amsterdam",
     "country": "Netherlands",

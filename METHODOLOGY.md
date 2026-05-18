@@ -402,8 +402,11 @@ soportar múltiples ciudades via Featured Cities Pack.
 ### Scope Phase 1
 
 - Minneapolis preserva los 3 módulos (hero/legacy).
-- 4 ciudades nuevas (Manhattan, Tokyo, Amsterdam, Madison) entran solo con
+- 3 ciudades adicionales (Amsterdam, Madison, Charleston) entran solo con
   zoning. Vial y services on-demand vía GitHub Issues post-launch.
+- Manhattan y Tokyo se incluyeron originalmente en v3.3 pero se removieron
+  en v3.3.2 (2026-05-18) para enfocar el set en cities con request real de la
+  community + Amsterdam como referencia de fine-grained EU tagging.
 
 ### Deferreds (Phase 2+)
 
