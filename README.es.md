@@ -14,7 +14,7 @@
 
 ## Ciudades destacadas (v3.3)
 
-El toolkit ahora soporta **5 ciudades** out-of-the-box, accesibles vía el visualizer hosteado en:
+El toolkit ahora soporta **6 ciudades** out-of-the-box, accesibles vía el visualizer hosteado en:
 
 **https://osyanne.github.io/cs2-minneapolis-osm-toolkit/**
 
@@ -25,8 +25,9 @@ El toolkit ahora soporta **5 ciudades** out-of-the-box, accesibles vía el visua
 | Tokyo (Central) | Japan | Zoning |
 | Amsterdam | Netherlands | Zoning |
 | Madison, WI | USA | Zoning |
+| Charleston, SC | USA | Zoning |
 
-Vial + servicios para las 4 ciudades nuevas son **on-demand**: abrí un [City Request issue](https://github.com/Osyanne/cs2-minneapolis-osm-toolkit/issues/new?template=city-request.yml) pidiéndolas, y las generamos.
+Vial + servicios para las 5 ciudades nuevas son **on-demand**: abrí un [City Request issue](https://github.com/Osyanne/cs2-minneapolis-osm-toolkit/issues/new?template=city-request.yml) pidiéndolas, y las generamos.
 
 ### Agregá tu ciudad
 
@@ -53,7 +54,7 @@ cd cs2-minneapolis-osm-toolkit/visualizer
 python -m http.server 8000
 ```
 
-Abrí `http://localhost:8000/` en tu browser. Los datos de las 5 ciudades están incluidos en el repo — no hace falta descargar nada extra.
+Abrí `http://localhost:8000/` en tu browser. Los datos de las 6 ciudades están incluidos en el repo — no hace falta descargar nada extra.
 
 > **¿Por qué HTTP y no doble clic?** El visualizer usa `fetch()` para leer el registro de ciudades y el manifest de cada ciudad. Los browsers bloquean `fetch()` desde URLs `file://` por defecto (política CORS), entonces abrir `index.html` con doble clic muestra el landing pero los mapas de cada ciudad fallan. Cualquier mini HTTP server funciona — el built-in de Python (arriba), `http-server` de Node, o la extensión Live Server de VS Code.
 
@@ -151,7 +152,7 @@ uv sync
 
 ### Prebuilts (ya están en el repo)
 
-Los archivos prebuilt `datos_*.js` de las 5 ciudades están **commiteados en `visualizer/cities/<slug>/`**. No hace falta descargar nada.
+Los archivos prebuilt `datos_*.js` de las 6 ciudades están **commiteados en `visualizer/cities/<slug>/`**. No hace falta descargar nada.
 
 **Para regenerar datos frescos** (ej., tras actualizaciones de OSM):
 
@@ -247,9 +248,9 @@ docs/
 
 | | |
 |---|---|
-| **Módulos** | 3 módulos × 5 ciudades (Mpls completo + 4 solo zoning) — Transporte pendiente |
-| **Bounding box** | 5 ciudades, ver `cities.json` |
-| **Features totales** | ~376k (Mpls 192k + Manhattan 23k + Tokyo 35k + Amsterdam 89k + Madison 37k) |
+| **Módulos** | 3 módulos × 6 ciudades (Mpls completo + 5 solo zoning) — Transporte pendiente |
+| **Bounding box** | 6 ciudades, ver `cities.json` |
+| **Features totales** | ~390k (Mpls 192k + Manhattan 23k + Tokyo 35k + Amsterdam 89k + Madison 37k + Charleston 14.5k) |
 | **Tests** | 171 pasando |
 | **Última extracción** | 2026-05-17 |
 

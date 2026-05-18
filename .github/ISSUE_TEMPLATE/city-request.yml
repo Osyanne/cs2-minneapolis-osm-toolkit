@@ -1,20 +1,23 @@
 name: City Request
-description: Request a new city for the CS2 OSM Toolkit Featured Cities Pack
+description: Request a new city for the CS2 OSM Toolkit
 title: "[City Request] "
 labels: ["city-request"]
 body:
   - type: markdown
     attributes:
       value: |
-        ¡Gracias por pedir una ciudad! Por favor llená todos los campos.
-        Tiempo estimado para agregar (zoning-only): 30-60 min después de aceptada.
+        Thanks for requesting a city! Please fill in every field carefully — incomplete
+        requests get queued behind well-specified ones.
+
+        **Turnaround:** 30–60 min after acceptance for zoning-only when actively maintaining.
+        Vial and Services modules add ~30 min each and are processed when bandwidth allows.
 
   - type: input
     id: display_name
     attributes:
       label: City display name
-      description: "Nombre completo de la ciudad como debería mostrarse (ej. 'São Paulo, Brazil')"
-      placeholder: "Madison, WI"
+      description: "Full name as it should appear on the landing page (e.g. 'Charleston, SC' or 'São Paulo, Brazil')."
+      placeholder: "Charleston, SC"
     validations:
       required: true
 
@@ -22,8 +25,10 @@ body:
     id: slug
     attributes:
       label: Proposed slug
-      description: "Identificador URL: lowercase, solo letras/números/guiones bajos, sin acentos (ej. 'sao_paulo', 'madison')"
-      placeholder: "madison"
+      description: |
+        URL identifier — lowercase letters, numbers, and underscores only. No accents,
+        spaces, or hyphens (use `_` instead). This becomes part of the URL: `map.html?city=YOUR_SLUG`.
+      placeholder: "charleston"
     validations:
       required: true
 
@@ -31,40 +36,68 @@ body:
     id: country
     attributes:
       label: Country / region
-      placeholder: "USA, Japan, Netherlands, etc."
+      placeholder: "USA"
     validations:
       required: true
 
   - type: input
     id: bbox
     attributes:
-      label: Bounding box
+      label: Bounding box (4 decimal numbers, comma-separated)
       description: |
-        Formato `south,west,north,east` (4 floats).
-        Usá [bboxfinder.com](http://bboxfinder.com/) para obtenerlo visualmente.
-        Recomendado: 10-20 km de lado, foco en downtown + áreas inmediatas.
-      placeholder: "43.030,-89.500,43.130,-89.300"
+        **Format:** `south,west,north,east` — exactly 4 decimal degrees, comma-separated, no spaces.
+
+        - `south` = southern latitude (smaller number)
+        - `west` = western longitude (more negative for the Americas)
+        - `north` = northern latitude (larger number)
+        - `east` = eastern longitude (less negative for the Americas)
+
+        **Size guidance:** Aim for ~0.10° to 0.20° per side (roughly 10–20 km). That's the scale
+        of one CS2 playable area. Larger bboxes take much longer to extract and include irrelevant suburbs/water.
+
+        **How to get one visually:**
+        1. Open [bboxfinder.com](http://bboxfinder.com/) and draw a rectangle around your city.
+        2. Copy the result from the **"Lat / Lng"** box (NOT the "Decimal" box — that one is `west,south,east,north` and will trip you up).
+        3. Paste into the field below.
+
+        **Example (Madison, WI):** `43.030,-89.500,43.130,-89.300`
+      placeholder: "32.74,-80.05,32.92,-79.85"
     validations:
       required: true
 
   - type: textarea
     id: motivation
     attributes:
-      label: ¿Por qué esta ciudad?
-      description: "Urban form interesante, builder popular que la pidió, demanda local, etc."
-      placeholder: "Capital state pequeña con isthmus + lagos, urban form única."
+      label: Why this city?
+      description: "Tell us briefly: interesting urban form, you're building it in CS2, local request, etc. One or two sentences is fine."
+      placeholder: "Historic peninsula bordered by two rivers, want to build it in CS2 with real street grid."
     validations:
       required: true
 
   - type: checkboxes
     id: modules
     attributes:
-      label: Módulos solicitados
+      label: Modules requested
       description: |
-        Default: solo zoning (cubre 95% del valor del toolkit, rápido de generar).
-        Vial/services son ampliación on-demand — marcarlos solo si tu uso requiere infraestructura específica.
+        **Zoning** is the core — fast to generate and covers ~95% of the toolkit's value.
+
+        **Vial** (road network) and **Services** (hospitals/schools/parks/etc.) are bonus modules.
+        Mark them only if your CS2 build genuinely needs that data layer. Requests with extra modules
+        get queued — zoning-only requests are prioritized.
       options:
-        - label: Zoning (siempre)
+        - label: Zoning (always included)
           required: true
-        - label: Vial (opcional — agrega ~30 min al pipeline)
-        - label: Services (opcional — agrega ~30 min)
+        - label: Vial (road network) — adds ~30 min, may be queued
+        - label: Services (hospitals/schools/parks) — adds ~30 min, may be queued
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Pre-submit checklist
+      options:
+        - label: I verified my bbox has exactly 4 comma-separated decimal numbers
+          required: true
+        - label: I verified my bbox is in `south,west,north,east` order (NOT bboxfinder's "Decimal" output)
+          required: true
+        - label: My bbox is roughly 0.10°–0.20° per side (not the whole metro area)
+          required: true

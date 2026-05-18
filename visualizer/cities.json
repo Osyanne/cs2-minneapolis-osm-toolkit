@@ -83,5 +83,22 @@
     "zoom": 12,
     "tagline": "Isthmus capital — mid-size americana",
     "locale": "es"
+  },
+  "charleston": {
+    "display_name": "Charleston, SC",
+    "country": "USA",
+    "bbox": [
+      32.74,
+      -80.05,
+      32.92,
+      -79.85
+    ],
+    "center": [
+      32.83,
+      -79.95
+    ],
+    "zoom": 12,
+    "tagline": "Historic peninsula + Lowcountry urbanism",
+    "locale": "es"
   }
 }
