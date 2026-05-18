@@ -14,7 +14,7 @@
 
 ## Featured Cities (v3.3)
 
-The toolkit now supports **4 cities** out-of-the-box, accessible via the hosted viewer at:
+The toolkit now supports **6 cities** out-of-the-box, accessible via the hosted viewer at:
 
 **https://osyanne.github.io/CitiesSkylines2-osm-toolkit/**
 
@@ -24,8 +24,10 @@ The toolkit now supports **4 cities** out-of-the-box, accessible via the hosted 
 | Amsterdam | Netherlands | Zoning |
 | Madison, WI | USA | Zoning |
 | Charleston, SC | USA | Zoning |
+| Trondheim | Norway | Zoning |
+| Mafra, SC | Brazil | Zoning |
 
-Vial + services for the 3 newer cities are **on-demand**: open a [City Request issue](https://github.com/Osyanne/CitiesSkylines2-osm-toolkit/issues/new?template=city-request.yml) requesting them, and we'll generate.
+Vial + services for non-hero cities are temporarily paused for new requests while we focus on broadening zoning coverage. Existing modules stay live.
 
 ### Adding your city
 
@@ -52,7 +54,7 @@ cd cs2-osm-toolkit/visualizer
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000/` in your browser. All 4 cities' data is included in the repo — no extra downloads needed.
+Open `http://localhost:8000/` in your browser. All 6 cities' data is included in the repo — no extra downloads needed.
 
 > **Why HTTP and not just double-click?** The map viewer uses `fetch()` to load the city registry and per-city manifest. Browsers block `fetch()` from `file://` URLs by default (CORS policy), so opening `index.html` directly with double-click shows the landing but city maps fail to load. Any tiny HTTP server works — Python's built-in (above), Node's `http-server`, or VS Code's Live Server extension.
 
@@ -150,7 +152,7 @@ uv sync
 
 ### Prebuilts (already in the repo)
 
-The prebuilt `datos_*.js` files for all 4 cities are **committed in `visualizer/cities/<slug>/`**. No download needed.
+The prebuilt `datos_*.js` files for all 6 cities are **committed in `visualizer/cities/<slug>/`**. No download needed.
 
 **To regenerate fresh data** (e.g., after OSM updates):
 
@@ -246,11 +248,11 @@ docs/
 
 | | |
 |---|---|
-| **Modules** | 3 modules × 4 cities (Mpls full + 3 zoning-only) — Transit pending |
-| **Bounding box** | 4 cities, see `cities.json` |
-| **Total features** | ~332k (Mpls 192k + Amsterdam 89k + Madison 37k + Charleston 14.5k) |
+| **Modules** | 3 modules × 6 cities (Mpls full + 5 zoning-only) — Transit pending |
+| **Bounding box** | 6 cities, see `cities.json` |
+| **Total features** | ~372k (Mpls 192k + Amsterdam 89k + Trondheim 40k + Madison 37k + Charleston 14.5k + Mafra 105) |
 | **Tests** | 171 passing |
-| **Last extracted** | 2026-05-17 |
+| **Last extracted** | 2026-05-18 |
 
 ---
 

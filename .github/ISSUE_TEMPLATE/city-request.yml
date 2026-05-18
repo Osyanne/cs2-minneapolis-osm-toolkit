@@ -9,8 +9,11 @@ body:
         Thanks for requesting a city! Please fill in every field carefully — incomplete
         requests get queued behind well-specified ones.
 
-        **Turnaround:** 30–60 min after acceptance for zoning-only when actively maintaining.
-        Vial and Services modules add ~30 min each and are processed when bandwidth allows.
+        **Scope (current):** City requests cover the **Zoning module only**. Vial (road network)
+        and Services (hospitals/schools/parks) are temporarily paused for new requests while
+        we focus on broadening the zoning coverage. Existing cities keep their full modules.
+
+        **Turnaround:** 30–60 min after acceptance for zoning when actively maintaining.
 
   - type: input
     id: display_name
@@ -77,18 +80,17 @@ body:
   - type: checkboxes
     id: modules
     attributes:
-      label: Modules requested
+      label: Module
       description: |
-        **Zoning** is the core — fast to generate and covers ~95% of the toolkit's value.
+        New city requests currently ship with **Zoning only**. This is the toolkit's core
+        module — fast to generate and covers ~95% of the value (residential/commercial/office/
+        industrial/parking subtypes aligned to CS2's zoning model).
 
-        **Vial** (road network) and **Services** (hospitals/schools/parks/etc.) are bonus modules.
-        Mark them only if your CS2 build genuinely needs that data layer. Requests with extra modules
-        get queued — zoning-only requests are prioritized.
+        Vial (road network) and Services (hospitals/schools/parks) are temporarily paused for
+        new cities. Watch the repo for when they reopen.
       options:
-        - label: Zoning (always included)
+        - label: Zoning (included by default)
           required: true
-        - label: Vial (road network) — adds ~30 min, may be queued
-        - label: Services (hospitals/schools/parks) — adds ~30 min, may be queued
 
   - type: checkboxes
     id: confirmations

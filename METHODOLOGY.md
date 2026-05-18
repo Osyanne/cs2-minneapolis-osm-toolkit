@@ -407,14 +407,21 @@ soportar múltiples ciudades via Featured Cities Pack.
 - Manhattan y Tokyo se incluyeron originalmente en v3.3 pero se removieron
   en v3.3.2 (2026-05-18) para enfocar el set en cities con request real de la
   community + Amsterdam como referencia de fine-grained EU tagging.
+- En v3.3.3 (2026-05-18 PM) se incorporan **Trondheim (Norway)** y
+  **Mafra, SC (Brazil)** como las primeras dos cities entrantes por
+  community city-request (Issues #5 y #6). A partir de v3.3.3 el template
+  de city-request limita el scope a **zoning-only** mientras se amplía
+  la cobertura geográfica; vial/services para nuevas cities quedan pausados.
 
 ### Deferreds (Phase 2+)
 
 - Rename del repo a `cs2-osm-toolkit` (espera caída de tráfico Reddit v3.2).
 - Heightmap generation pipeline (Phase 3 — valida demanda con Featured
-  Cities primero).
-- Promoción de las 4 ciudades a fully-featured (cuando acumulen 5+ requests
-  por vial/services).
+  Cities primero; CityTimelineMod fork confirma demanda implícita).
+- Reapertura de vial/services para nuevas city-requests cuando la cobertura
+  de zoning alcance ≥10 cities.
+- Promoción de cities zoning-only a fully-featured (cuando acumulen 5+
+  requests por vial/services).
 
 Ver spec: `docs/specs/2026-05-17-featured-cities-pack-design.md`
 Ver plan: `docs/plans/2026-05-17-featured-cities-pack.md`

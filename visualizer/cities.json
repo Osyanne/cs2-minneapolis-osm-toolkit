@@ -66,5 +66,39 @@
     "zoom": 12,
     "tagline": "Historic peninsula + Lowcountry urbanism",
     "locale": "es"
+  },
+  "mafra_sc_brazil": {
+    "display_name": "Mafra, SC",
+    "country": "Brazil",
+    "bbox": [
+      -26.1658,
+      -49.8643,
+      -26.0879,
+      -49.77
+    ],
+    "center": [
+      -26.1269,
+      -49.8172
+    ],
+    "zoom": 13,
+    "tagline": "Pequeña urbanidad brasileña + industria + rural",
+    "locale": "es"
+  },
+  "trondheim": {
+    "display_name": "Trondheim",
+    "country": "Norway",
+    "bbox": [
+      63.333645,
+      10.206814,
+      63.466541,
+      10.578632
+    ],
+    "center": [
+      63.4001,
+      10.3927
+    ],
+    "zoom": 12,
+    "tagline": "Corazón de Noruega — fiordo y casco antiguo",
+    "locale": "es"
   }
 }
