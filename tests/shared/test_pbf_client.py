@@ -253,3 +253,82 @@ class TestSpatialJoin:
     def test_empty_targets_returns_empty(self):
         anchors = [{"type": "node", "id": 1, "lat": 0, "lon": 0, "tags": {}}]
         assert _apply_spatial_join([], anchors, buffer_m=5.0) == []
+
+
+from shared.pbf_client import query
+from shared.pbf_filters import FilterSpec, Clause, TagMatcher, SpatialJoin
+
+
+@pytest.mark.skipif(not MONACO_PBF.exists(), reason="Monaco fixture missing")
+class TestQueryAgainstMonaco:
+    def test_returns_overpass_shape_dict(self):
+        spec = FilterSpec(
+            clauses={
+                "buildings": Clause(
+                    geom_types=["way"],
+                    tag_filters=[TagMatcher({"building": True})],
+                ),
+            },
+        )
+        result = query(MONACO_PBF, MONACO_BBOX, spec, label="buildings")
+        assert "elements" in result
+        assert isinstance(result["elements"], list)
+        # Monaco has thousands of buildings
+        assert len(result["elements"]) > 100
+        first = result["elements"][0]
+        assert first["type"] in ("way", "relation")
+        assert "id" in first
+        assert "tags" in first
+
+    def test_no_match_returns_empty_elements(self):
+        spec = FilterSpec(
+            clauses={
+                "fake": Clause(
+                    geom_types=["way"],
+                    tag_filters=[TagMatcher({"building": "this_value_does_not_exist_anywhere_in_monaco"})],
+                ),
+            },
+        )
+        result = query(MONACO_PBF, MONACO_BBOX, spec, label="empty")
+        assert result["elements"] == []
+
+    def test_dedup_by_type_and_id(self):
+        spec = FilterSpec(
+            clauses={
+                "a": Clause(
+                    geom_types=["way"],
+                    tag_filters=[TagMatcher({"building": True})],
+                ),
+                "b": Clause(
+                    geom_types=["way"],
+                    tag_filters=[TagMatcher({"building": True})],
+                ),
+            },
+        )
+        result = query(MONACO_PBF, MONACO_BBOX, spec, label="dedup")
+        ids = [(el["type"], el["id"]) for el in result["elements"]]
+        assert len(ids) == len(set(ids))
+
+    def test_node_filter_returns_nodes(self):
+        spec = FilterSpec(
+            clauses={
+                "amenities": Clause(
+                    geom_types=["node"],
+                    tag_filters=[TagMatcher({"amenity": True})],
+                ),
+            },
+        )
+        result = query(MONACO_PBF, MONACO_BBOX, spec, label="amenities")
+        assert len(result["elements"]) > 0
+        assert all(el["type"] == "node" for el in result["elements"])
+        for el in result["elements"]:
+            assert "lat" in el and "lon" in el
+
+    def test_missing_pbf_raises(self, tmp_path: Path):
+        spec = FilterSpec(
+            clauses={
+                "x": Clause(geom_types=["way"], tag_filters=[TagMatcher({"x": "y"})]),
+            },
+        )
+        with pytest.raises(FileNotFoundError):
+            query(tmp_path / "nope.osm.pbf", MONACO_BBOX, spec, label="x")
