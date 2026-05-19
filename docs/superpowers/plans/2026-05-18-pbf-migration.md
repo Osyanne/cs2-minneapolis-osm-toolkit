@@ -128,14 +128,14 @@ git commit -m "chore(deps): add pyosmium 3.7.0 for PBF extraction, bump to v3.4.
 - Create: `src/shared/pbf_cache.py`
 - Test: `tests/shared/test_pbf_cache.py`
 
-- [ ] **Step 1.1: Create tests directory structure**
+- [x] **Step 1.1: Create tests directory structure**
 
 ```bash
 mkdir -p tests/shared tests/fixtures tests/integration
 touch tests/shared/__init__.py
 ```
 
-- [ ] **Step 1.2: Write failing test for URL resolution**
+- [x] **Step 1.2: Write failing test for URL resolution**
 
 Create `tests/shared/test_pbf_cache.py`:
 
@@ -174,7 +174,7 @@ class TestGeofabrikUrl:
             geofabrik_url(None)  # type: ignore[arg-type]
 ```
 
-- [ ] **Step 1.3: Run test, verify it fails**
+- [x] **Step 1.3: Run test, verify it fails**
 
 ```bash
 cd src
@@ -183,7 +183,7 @@ uv run pytest ../tests/shared/test_pbf_cache.py -v
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'shared.pbf_cache'`.
 
-- [ ] **Step 1.4: Implement geofabrik_url**
+- [x] **Step 1.4: Implement geofabrik_url**
 
 Create `src/shared/pbf_cache.py`:
 
@@ -237,7 +237,7 @@ def geofabrik_url(region: str) -> str:
     return f"{GEOFABRIK_BASE}/{cleaned}-latest.osm.pbf"
 ```
 
-- [ ] **Step 1.5: Run test, verify pass**
+- [x] **Step 1.5: Run test, verify pass**
 
 ```bash
 cd src
@@ -246,7 +246,7 @@ uv run pytest ../tests/shared/test_pbf_cache.py -v
 
 Expected: 6 passed.
 
-- [ ] **Step 1.6: Write failing test for cache logic**
+- [x] **Step 1.6: Write failing test for cache logic**
 
 Append to `tests/shared/test_pbf_cache.py`:
 
@@ -328,7 +328,7 @@ class TestEnsurePbf:
         assert result.read_bytes() == b"new content"
 ```
 
-- [ ] **Step 1.7: Run new tests, verify they fail**
+- [x] **Step 1.7: Run new tests, verify they fail**
 
 ```bash
 cd src
@@ -337,7 +337,7 @@ uv run pytest ../tests/shared/test_pbf_cache.py -v
 
 Expected: 3 PASS (URL tests), 6 FAIL (cache tests) with `ImportError: cannot import name 'ensure_pbf'`.
 
-- [ ] **Step 1.8: Implement cache logic**
+- [x] **Step 1.8: Implement cache logic**
 
 Append to `src/shared/pbf_cache.py`:
 
@@ -429,7 +429,7 @@ def ensure_pbf(
     return target
 ```
 
-- [ ] **Step 1.9: Run all cache tests, verify pass**
+- [x] **Step 1.9: Run all cache tests, verify pass**
 
 ```bash
 cd src
@@ -438,7 +438,7 @@ uv run pytest ../tests/shared/test_pbf_cache.py -v
 
 Expected: 9 passed.
 
-- [ ] **Step 1.10: Commit**
+- [x] **Step 1.10: Commit**
 
 ```bash
 git add src/shared/pbf_cache.py tests/shared/__init__.py tests/shared/test_pbf_cache.py
