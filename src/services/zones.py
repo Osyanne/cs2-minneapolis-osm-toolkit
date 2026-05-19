@@ -17,6 +17,9 @@ Diseño de query:
   - timeout 90s (esperado ~600-900 features en bbox de Minneapolis)
 """
 
+from shared.pbf_filters import Clause, FilterSpec, TagMatcher
+
+
 SERVICES_LABELS = {
     "health":    "Atención sanitaria y funeraria",
     "education": "Educación e investigación",
@@ -69,3 +72,39 @@ def build_services_query(bbox: str) -> str:
 );
 out body geom;
 """.strip()
+
+
+SERVICES_AMENITY_VALUES = [
+    "hospital", "clinic", "doctors", "funeral_directors", "crematorium",
+    "school", "university", "college", "kindergarten", "research_institute",
+    "fire_station",
+    "police", "townhall", "courthouse", "prison", "library",
+    "theatre", "arts_centre", "cinema",
+]
+
+SERVICES_LEISURE_VALUES = ["park", "nature_reserve", "garden", "playground", "sports_centre"]
+
+SERVICES_OFFICE_VALUES = ["government", "research"]
+
+
+def build_services_pbf_filter(bbox: tuple[float, float, float, float]) -> FilterSpec:
+    """
+    Sibling estructurado de build_services_query(bbox_string).
+    Devuelve un FilterSpec con una clause única que matchea cualquiera de:
+    amenity ∈ SERVICES_AMENITY_VALUES, leisure ∈ SERVICES_LEISURE_VALUES,
+    landuse=cemetery, office ∈ SERVICES_OFFICE_VALUES, tourism=museum.
+    """
+    return FilterSpec(
+        clauses={
+            "services": Clause(
+                geom_types=["node", "way"],
+                tag_filters=[
+                    TagMatcher({"amenity": SERVICES_AMENITY_VALUES}),
+                    TagMatcher({"leisure": SERVICES_LEISURE_VALUES}),
+                    TagMatcher({"landuse": "cemetery"}),
+                    TagMatcher({"office": SERVICES_OFFICE_VALUES}),
+                    TagMatcher({"tourism": "museum"}),
+                ],
+            ),
+        },
+    )

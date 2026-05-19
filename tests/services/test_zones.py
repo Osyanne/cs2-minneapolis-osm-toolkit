@@ -91,3 +91,34 @@ def test_build_services_query_uses_out_body_geom():
     q = build_services_query(BBOX)
     assert "out body geom" in q
     assert "[out:json]" in q
+
+
+# ── PBF filter sibling tests (v3.4.0+) ───────────────────────────────────────
+
+def test_build_services_pbf_filter_returns_filterspec():
+    from services.zones import build_services_pbf_filter
+    from shared.pbf_filters import FilterSpec
+    f = build_services_pbf_filter((44.86, -93.38, 45.05, -93.17))
+    assert isinstance(f, FilterSpec)
+
+
+def test_build_services_pbf_filter_matches_hospital_and_school():
+    from services.zones import build_services_pbf_filter
+    f = build_services_pbf_filter((44.86, -93.38, 45.05, -93.17))
+    matchers = [m for c in f.clauses.values() for m in c.tag_filters]
+    assert any(m.matches({"amenity": "hospital"}) for m in matchers)
+    assert any(m.matches({"amenity": "school"}) for m in matchers)
+
+
+def test_build_services_pbf_filter_matches_park_leisure():
+    from services.zones import build_services_pbf_filter
+    f = build_services_pbf_filter((44.86, -93.38, 45.05, -93.17))
+    matchers = [m for c in f.clauses.values() for m in c.tag_filters]
+    assert any(m.matches({"leisure": "park"}) for m in matchers)
+
+
+def test_build_services_pbf_filter_matches_cemetery_landuse():
+    from services.zones import build_services_pbf_filter
+    f = build_services_pbf_filter((44.86, -93.38, 45.05, -93.17))
+    matchers = [m for c in f.clauses.values() for m in c.tag_filters]
+    assert any(m.matches({"landuse": "cemetery"}) for m in matchers)

@@ -16,6 +16,9 @@ Diseño de query:
   - timeout 180s (Minneapolis tiene ~50k ways highway en este bbox)
 """
 
+from shared.pbf_filters import Clause, FilterSpec, TagMatcher
+
+
 VIAL_LABELS = {
     "highway":    "Highway",
     "major":      "Major Road",
@@ -48,3 +51,28 @@ def build_vial_query(bbox: str) -> str:
 );
 out body geom;
 """.strip()
+
+
+VIAL_HIGHWAY_VALUES = [
+    "motorway", "motorway_link", "trunk", "trunk_link",
+    "primary", "primary_link", "secondary", "secondary_link",
+    "tertiary", "tertiary_link", "residential", "unclassified",
+    "living_street", "service",
+    "pedestrian", "footway", "path", "steps",
+    "cycleway",
+]
+
+
+def build_vial_pbf_filter(bbox: tuple[float, float, float, float]) -> FilterSpec:
+    """
+    Sibling estructurado de build_vial_query(bbox_string).
+    Devuelve un FilterSpec que matchea ways con highway en VIAL_HIGHWAY_VALUES.
+    """
+    return FilterSpec(
+        clauses={
+            "highways": Clause(
+                geom_types=["way"],
+                tag_filters=[TagMatcher({"highway": VIAL_HIGHWAY_VALUES})],
+            ),
+        },
+    )
