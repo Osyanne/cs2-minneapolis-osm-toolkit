@@ -455,7 +455,7 @@ git commit -m "feat(pbf): add Geofabrik downloader with TTL cache"
 - Create: `src/shared/pbf_filters.py`
 - Test: `tests/shared/test_pbf_filters.py`
 
-- [ ] **Step 2.1: Write failing tests for filter specs**
+- [x] **Step 2.1: Write failing tests for filter specs**
 
 Create `tests/shared/test_pbf_filters.py`:
 
@@ -561,7 +561,7 @@ class TestFilterSpec:
             )
 ```
 
-- [ ] **Step 2.2: Run, verify fails**
+- [x] **Step 2.2: Run, verify fails**
 
 ```bash
 cd src
@@ -570,7 +570,7 @@ uv run pytest ../tests/shared/test_pbf_filters.py -v
 
 Expected: FAIL with `ModuleNotFoundError`.
 
-- [ ] **Step 2.3: Implement filter spec types**
+- [x] **Step 2.3: Implement filter spec types**
 
 Create `src/shared/pbf_filters.py`:
 
@@ -710,7 +710,7 @@ class FilterSpec:
                 )
 ```
 
-- [ ] **Step 2.4: Run, verify pass**
+- [x] **Step 2.4: Run, verify pass**
 
 ```bash
 cd src
@@ -719,7 +719,7 @@ uv run pytest ../tests/shared/test_pbf_filters.py -v
 
 Expected: 12 passed.
 
-- [ ] **Step 2.5: Commit**
+- [x] **Step 2.5: Commit**
 
 ```bash
 git add src/shared/pbf_filters.py tests/shared/test_pbf_filters.py
