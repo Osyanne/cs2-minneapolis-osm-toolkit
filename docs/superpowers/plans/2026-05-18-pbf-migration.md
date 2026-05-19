@@ -1628,7 +1628,7 @@ git commit -m "feat(pbf): implement query() with pyrosm + Overpass-shape output"
 - Modify: `src/zoning/zones.py`
 - Test: `tests/zoning/test_zones.py` (new)
 
-- [ ] **Step 8.1: Create tests directory and write failing test**
+- [x] **Step 8.1: Create tests directory and write failing test**
 
 ```bash
 mkdir -p tests/zoning
@@ -1686,7 +1686,7 @@ def test_parking_matches_amenity_parking():
     assert any(m.matches({"amenity": "parking"}) for m in clause.tag_filters)
 ```
 
-- [ ] **Step 8.2: Run, verify fails**
+- [x] **Step 8.2: Run, verify fails**
 
 ```bash
 cd src
@@ -1695,7 +1695,7 @@ uv run pytest ../tests/zoning/test_zones.py -v
 
 Expected: FAIL with `ImportError: cannot import name 'build_pbf_filters'`.
 
-- [ ] **Step 8.3: Implement build_pbf_filters**
+- [x] **Step 8.3: Implement build_pbf_filters**
 
 Append to `src/zoning/zones.py`:
 
@@ -1889,7 +1889,7 @@ def build_pbf_filters(bbox: tuple[float, float, float, float]) -> dict[str, Filt
     }
 ```
 
-- [ ] **Step 8.4: Run, verify pass**
+- [x] **Step 8.4: Run, verify pass**
 
 ```bash
 cd src
@@ -1898,7 +1898,7 @@ uv run pytest ../tests/zoning/test_zones.py -v
 
 Expected: 5 passed.
 
-- [ ] **Step 8.5: Commit**
+- [x] **Step 8.5: Commit**
 
 ```bash
 git add src/zoning/zones.py tests/zoning/__init__.py tests/zoning/test_zones.py
@@ -1913,7 +1913,7 @@ git commit -m "feat(zoning): add build_pbf_filters sibling to build_queries"
 - Test: `tests/vial/test_zones.py` (new)
 - Test: `tests/services/test_zones.py` (new)
 
-- [ ] **Step 9.1: Write failing tests for vial**
+- [x] **Step 9.1: Write failing tests for vial**
 
 ```bash
 mkdir -p tests/vial tests/services
@@ -1979,7 +1979,7 @@ def test_matches_cemetery_landuse():
     assert any(m.matches({"landuse": "cemetery"}) for m in matchers)
 ```
 
-- [ ] **Step 9.2: Run, verify fails**
+- [x] **Step 9.2: Run, verify fails**
 
 ```bash
 cd src
@@ -1988,7 +1988,7 @@ uv run pytest ../tests/vial/test_zones.py ../tests/services/test_zones.py -v
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 9.3: Implement vial/zones.py PBF filter**
+- [x] **Step 9.3: Implement vial/zones.py PBF filter**
 
 Append to `src/vial/zones.py`:
 
@@ -2022,7 +2022,7 @@ def build_vial_pbf_filter(bbox: tuple[float, float, float, float]) -> FilterSpec
     )
 ```
 
-- [ ] **Step 9.4: Implement services/zones.py PBF filter**
+- [x] **Step 9.4: Implement services/zones.py PBF filter**
 
 Append to `src/services/zones.py`:
 
@@ -2067,7 +2067,7 @@ def build_services_pbf_filter(bbox: tuple[float, float, float, float]) -> Filter
     )
 ```
 
-- [ ] **Step 9.5: Run, verify pass**
+- [x] **Step 9.5: Run, verify pass**
 
 ```bash
 cd src
@@ -2076,7 +2076,7 @@ uv run pytest ../tests/vial/test_zones.py ../tests/services/test_zones.py -v
 
 Expected: 7 passed.
 
-- [ ] **Step 9.6: Commit**
+- [x] **Step 9.6: Commit**
 
 ```bash
 git add src/vial/zones.py src/services/zones.py tests/vial/__init__.py tests/vial/test_zones.py tests/services/__init__.py tests/services/test_zones.py
@@ -2090,7 +2090,7 @@ git commit -m "feat(vial,services): add build_*_pbf_filter siblings"
 - Modify: `src/shared/registry.py` (validate optional field)
 - Test: `tests/shared/test_registry_pbf_region.py` (new)
 
-- [ ] **Step 10.1: Write failing test for pbf_region validation**
+- [x] **Step 10.1: Write failing test for pbf_region validation**
 
 Create `tests/shared/test_registry_pbf_region.py`:
 
@@ -2144,7 +2144,7 @@ def test_load_city_without_pbf_region_ok(tmp_path: Path):
     assert "pbf_region" not in entry or entry.get("pbf_region") is None
 ```
 
-- [ ] **Step 10.2: Run baseline (verify registry.py works as-is)**
+- [x] **Step 10.2: Run baseline (verify registry.py works as-is)**
 
 ```bash
 cd src
@@ -2153,7 +2153,7 @@ uv run pytest ../tests/shared/test_registry_pbf_region.py -v
 
 Expected: Both PASS (registry.py likely doesn't reject unknown optional fields). If they fail, examine `src/shared/registry.py` for strict-schema validation and relax it for the new field.
 
-- [ ] **Step 10.3: Update cities.json with pbf_region**
+- [x] **Step 10.3: Update cities.json with pbf_region**
 
 Edit `cities.json`. For each existing city, add `pbf_region`. Confirmed mappings:
 
@@ -2184,7 +2184,7 @@ Add the field to each entry. Example for minneapolis:
 }
 ```
 
-- [ ] **Step 10.4: Verify JSON is still valid**
+- [x] **Step 10.4: Verify JSON is still valid**
 
 ```bash
 python -c "import json; json.load(open('cities.json'))"
@@ -2192,7 +2192,7 @@ python -c "import json; json.load(open('cities.json'))"
 
 Expected: no output (silent success).
 
-- [ ] **Step 10.5: Run all tests to make sure nothing regressed**
+- [x] **Step 10.5: Run all tests to make sure nothing regressed**
 
 ```bash
 cd src
@@ -2201,7 +2201,7 @@ uv run pytest -v
 
 Expected: All tests pass, including new ones from previous tasks.
 
-- [ ] **Step 10.6: Commit**
+- [x] **Step 10.6: Commit**
 
 ```bash
 git add cities.json tests/shared/test_registry_pbf_region.py
@@ -2214,7 +2214,7 @@ git commit -m "feat(registry): add optional pbf_region field per city"
 - Modify: `src/zoning/extract.py`
 - Test: `tests/zoning/test_extract_source_flag.py` (new)
 
-- [ ] **Step 11.1: Read current main() and argument parsing**
+- [x] **Step 11.1: Read current main() and argument parsing**
 
 ```bash
 grep -n "argparse\|add_argument\|def main" src/zoning/extract.py
@@ -2222,7 +2222,7 @@ grep -n "argparse\|add_argument\|def main" src/zoning/extract.py
 
 Note the line ranges of `main()` and the argument parser block.
 
-- [ ] **Step 11.2: Write failing test for CLI flag parsing**
+- [x] **Step 11.2: Write failing test for CLI flag parsing**
 
 Create `tests/zoning/test_extract_source_flag.py`:
 
@@ -2257,7 +2257,7 @@ def test_invalid_source_rejected():
         parse_args(["--city", "minneapolis", "--source", "garbage"])
 ```
 
-- [ ] **Step 11.3: Run, verify fails**
+- [x] **Step 11.3: Run, verify fails**
 
 ```bash
 cd src
@@ -2266,7 +2266,7 @@ uv run pytest ../tests/zoning/test_extract_source_flag.py -v
 
 Expected: FAIL (either parse_args doesn't exist, or doesn't accept --source).
 
-- [ ] **Step 11.4: Refactor extract.py to expose parse_args + add --source**
+- [x] **Step 11.4: Refactor extract.py to expose parse_args + add --source**
 
 Modify `src/zoning/extract.py` `main()` area. The pattern is:
 
@@ -2333,7 +2333,7 @@ def main() -> None:
 
 Apply this edit. Reading and adapting the actual `main()` code to incorporate this branching is the engineer's responsibility — the structure above is the contract.
 
-- [ ] **Step 11.5: Run flag tests, verify pass**
+- [x] **Step 11.5: Run flag tests, verify pass**
 
 ```bash
 cd src
@@ -2342,7 +2342,7 @@ uv run pytest ../tests/zoning/test_extract_source_flag.py -v
 
 Expected: 4 passed.
 
-- [ ] **Step 11.6: Smoke test — actually run extraction with PBF source**
+- [x] **Step 11.6: Smoke test — actually run extraction with PBF source**
 
 ```bash
 cd src
@@ -2356,7 +2356,7 @@ Expected:
 
 If element counts are within ±20% of Overpass run, parity is acceptable. Larger divergence: investigate filter spec.
 
-- [ ] **Step 11.7: Smoke test — run with --source overpass to verify backward compat**
+- [x] **Step 11.7: Smoke test — run with --source overpass to verify backward compat**
 
 ```bash
 cd src
@@ -2365,7 +2365,7 @@ uv run extract-zoning --city minneapolis --source overpass 2>&1 | tail -10
 
 Expected: existing Overpass behavior, same output.
 
-- [ ] **Step 11.8: Commit**
+- [x] **Step 11.8: Commit**
 
 ```bash
 git add src/zoning/extract.py tests/zoning/test_extract_source_flag.py
@@ -2378,7 +2378,7 @@ git commit -m "feat(zoning): add --source pbf|overpass flag to extract-zoning"
 - Modify: `src/vial/extract.py`
 - Test: `tests/vial/test_extract_source_flag.py` (new)
 
-- [ ] **Step 12.1: Write failing test** (mirror Task 11.2 with `vial.extract.parse_args`)
+- [x] **Step 12.1: Write failing test** (mirror Task 11.2 with `vial.extract.parse_args`)
 
 Create `tests/vial/test_extract_source_flag.py`:
 
@@ -2403,7 +2403,7 @@ def test_invalid_source_rejected():
         parse_args(["--city", "minneapolis", "--source", "garbage"])
 ```
 
-- [ ] **Step 12.2: Run, verify fails**
+- [x] **Step 12.2: Run, verify fails**
 
 ```bash
 cd src
@@ -2412,14 +2412,14 @@ uv run pytest ../tests/vial/test_extract_source_flag.py -v
 
 Expected: FAIL.
 
-- [ ] **Step 12.3: Apply same parse_args + main() refactor pattern from Task 11.4**
+- [x] **Step 12.3: Apply same parse_args + main() refactor pattern from Task 11.4**
 
 In `src/vial/extract.py`:
 - Extract argparse into `parse_args(argv=None)`
 - Add `--source` and `--refresh-pbf` flags
 - Branch in `main()`: PBF uses `build_vial_pbf_filter(bbox_tuple)` and `pbf_client.query(...)`; Overpass uses existing `build_vial_query` + `query_with_retry`.
 
-- [ ] **Step 12.4: Run flag tests**
+- [x] **Step 12.4: Run flag tests**
 
 ```bash
 cd src
@@ -2428,7 +2428,7 @@ uv run pytest ../tests/vial/test_extract_source_flag.py -v
 
 Expected: 3 passed.
 
-- [ ] **Step 12.5: Smoke test PBF path**
+- [x] **Step 12.5: Smoke test PBF path**
 
 ```bash
 cd src
@@ -2437,7 +2437,7 @@ uv run extract-vial --city minneapolis --source pbf 2>&1 | tail -20
 
 Expected: PBF cache hit (already downloaded in Task 11), highways extracted in <30s.
 
-- [ ] **Step 12.6: Commit**
+- [x] **Step 12.6: Commit**
 
 ```bash
 git add src/vial/extract.py tests/vial/test_extract_source_flag.py
@@ -2450,7 +2450,7 @@ git commit -m "feat(vial): add --source pbf|overpass flag to extract-vial"
 - Modify: `src/services/extract.py`
 - Test: `tests/services/test_extract_source_flag.py` (new)
 
-- [ ] **Step 13.1: Write failing test**
+- [x] **Step 13.1: Write failing test**
 
 Create `tests/services/test_extract_source_flag.py`:
 
@@ -2475,7 +2475,7 @@ def test_invalid_rejected():
         parse_args(["--city", "minneapolis", "--source", "garbage"])
 ```
 
-- [ ] **Step 13.2: Run, verify fails**
+- [x] **Step 13.2: Run, verify fails**
 
 ```bash
 cd src
@@ -2484,11 +2484,11 @@ uv run pytest ../tests/services/test_extract_source_flag.py -v
 
 Expected: FAIL.
 
-- [ ] **Step 13.3: Apply same pattern in src/services/extract.py**
+- [x] **Step 13.3: Apply same pattern in src/services/extract.py**
 
 PBF branch uses `build_services_pbf_filter(bbox_tuple)` + `pbf_client.query(...)`.
 
-- [ ] **Step 13.4: Run tests**
+- [x] **Step 13.4: Run tests**
 
 ```bash
 cd src
@@ -2497,7 +2497,7 @@ uv run pytest ../tests/services/test_extract_source_flag.py -v
 
 Expected: 3 passed.
 
-- [ ] **Step 13.5: Smoke test PBF path**
+- [x] **Step 13.5: Smoke test PBF path**
 
 ```bash
 cd src
@@ -2506,7 +2506,7 @@ uv run extract-services --city minneapolis --source pbf 2>&1 | tail -20
 
 Expected: services extracted in <30s.
 
-- [ ] **Step 13.6: Commit**
+- [x] **Step 13.6: Commit**
 
 ```bash
 git add src/services/extract.py tests/services/test_extract_source_flag.py
@@ -2520,19 +2520,19 @@ git commit -m "feat(services): add --source pbf|overpass flag to extract-service
 
 This file uses Overpass twice: landuse polygons (via `build_queries`) and civic amenities. Both have PBF equivalents from Task 8.
 
-- [ ] **Step 14.1: Identify Overpass call sites**
+- [x] **Step 14.1: Identify Overpass call sites**
 
 ```bash
 grep -n "query_with_retry\|build_queries" src/zoning/extract_google_buildings.py
 ```
 
-- [ ] **Step 14.2: Add --source flag and route both Overpass calls through the PBF branch**
+- [x] **Step 14.2: Add --source flag and route both Overpass calls through the PBF branch**
 
 Apply the same `parse_args` + branch pattern. The two source keys to fetch via PBF are at least `landuse_residential`, `commercial`, `industrial`, `office`, `civic_amenities` (check actual usage in the file).
 
 Use a single `pbf_path = ensure_pbf(city_entry["pbf_region"], force_refresh=args.refresh_pbf)` at the top of `main()` (one cache lookup, multiple queries).
 
-- [ ] **Step 14.3: Smoke test**
+- [x] **Step 14.3: Smoke test**
 
 ```bash
 cd src
@@ -2541,7 +2541,7 @@ uv run extract-google-buildings --city minneapolis --source pbf 2>&1 | tail -30
 
 Expected: pipeline runs end-to-end, output file in `visualizer/cities/minneapolis/google_buildings.js` (or equivalent).
 
-- [ ] **Step 14.4: Commit**
+- [x] **Step 14.4: Commit**
 
 ```bash
 git add src/zoning/extract_google_buildings.py
