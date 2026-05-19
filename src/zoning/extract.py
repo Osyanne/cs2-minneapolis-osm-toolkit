@@ -435,7 +435,7 @@ def main():
     raw: dict[str, list] = {}
     if args.source == "pbf":
         from shared.pbf_cache import ensure_pbf
-        from shared.pbf_client import query as pbf_query
+        from shared.pbf_client import query_batch
         from zoning.zones import build_pbf_filters
 
         cities = load_cities(cities_file)
@@ -452,9 +452,9 @@ def main():
         filter_specs = build_pbf_filters(bbox_tuple)
 
         print(f"[1/2] Extracting {len(SOURCE_KEYS)} source categories from PBF...")
+        batch_result = query_batch(pbf_path, bbox_tuple, filter_specs, label="zoning")
+        raw = {key: batch_result[key]["elements"] for key in SOURCE_KEYS}
         for key in SOURCE_KEYS:
-            result = pbf_query(pbf_path, bbox_tuple, filter_specs[key], label=key)
-            raw[key] = result.get("elements", [])
             print(f"      {key:<24}: {len(raw[key])} elements")
     else:
         queries = build_queries(bbox)
