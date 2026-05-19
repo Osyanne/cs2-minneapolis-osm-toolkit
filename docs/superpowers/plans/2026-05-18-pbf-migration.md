@@ -2558,7 +2558,7 @@ git commit -m "feat(zoning): add --source pbf flag to extract-google-buildings"
 - Create: `tests/integration/test_pbf_overpass_parity.py`
 - Create: `tests/integration/__init__.py`
 
-- [ ] **Step 15.1: Create integration test**
+- [x] **Step 15.1: Create integration test**
 
 ```bash
 touch tests/integration/__init__.py
@@ -2622,7 +2622,7 @@ def test_zoning_pbf_overpass_parity_minneapolis():
         )
 ```
 
-- [ ] **Step 15.2: Register integration marker in pyproject**
+- [x] **Step 15.2: Register integration marker in pyproject**
 
 Modify `src/pyproject.toml` (add to bottom):
 
@@ -2633,7 +2633,7 @@ markers = [
 ]
 ```
 
-- [ ] **Step 15.3: Run parity test manually (one-off, not in CI)**
+- [x] **Step 15.3: Run parity test manually (one-off, not in CI)**
 
 ```bash
 cd src
@@ -2645,7 +2645,7 @@ Expected:
 - All source keys within ±20%
 - If a key fails parity, investigate the corresponding `TagMatcher` list in `zoning/zones.py` — likely missing a value.
 
-- [ ] **Step 15.4: If parity fails for any key, fix and re-test**
+- [x] **Step 15.4: If parity fails for any key, fix and re-test**
 
 Common fixes:
 - Missing tag value in `TagMatcher` (e.g., Overpass query had `building:use~"residential"` and we only matched `building:use=residential` exact — needs adjustment or accept the gap)
@@ -2654,7 +2654,7 @@ Common fixes:
 
 Repeat Step 15.3 until pass.
 
-- [ ] **Step 15.5: Commit**
+- [x] **Step 15.5: Commit**
 
 ```bash
 git add tests/integration/__init__.py tests/integration/test_pbf_overpass_parity.py src/pyproject.toml
@@ -2671,7 +2671,7 @@ git commit -m "test: add PBF/Overpass parity integration test (opt-in)"
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 16.1: Add "Data source" section to README**
+- [x] **Step 16.1: Add "Data source" section to README**
 
 In `README.md`, after the "Quick start" section, add:
 
@@ -2716,7 +2716,7 @@ uv run extract-zoning --city minneapolis --source overpass
 ```
 ```
 
-- [ ] **Step 16.2: Add v3.4.0 CHANGELOG entry**
+- [x] **Step 16.2: Add v3.4.0 CHANGELOG entry**
 
 Append to top of `CHANGELOG.md`:
 
@@ -2750,7 +2750,7 @@ regional PBF for your city's `pbf_region` on first use. To opt back into the
 old behavior temporarily: append `--source overpass`.
 ```
 
-- [ ] **Step 16.3: Verify all tests still pass**
+- [x] **Step 16.3: Verify all tests still pass**
 
 ```bash
 cd src
@@ -2759,7 +2759,7 @@ uv run pytest -v
 
 Expected: All non-integration tests pass.
 
-- [ ] **Step 16.4: Commit**
+- [x] **Step 16.4: Commit**
 
 ```bash
 git add README.md CHANGELOG.md
