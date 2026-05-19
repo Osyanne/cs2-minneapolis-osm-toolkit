@@ -1,4 +1,4 @@
-# CS2 Minneapolis OSM Toolkit — v3.3
+# CS2 Minneapolis OSM Toolkit — v3.4
 
 > Real-world GIS data from OpenStreetMap → Cities: Skylines 2
 > Modular toolkit · 100% open source · Zero API keys · Interactive dark map
@@ -6,7 +6,7 @@
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![OSM Data](https://img.shields.io/badge/Data-OpenStreetMap-orange)
-![Tests](https://img.shields.io/badge/tests-171%20passing-success)
+![Tests](https://img.shields.io/badge/tests-281%20passing-success)
 
 > 🇪🇸 Versión en español: [README.es.md](README.es.md)
 
@@ -84,6 +84,55 @@ The short version:
 For ad-hoc one-off extracts without modifying `cities.json`, use the escape hatch: `uv run extract-zoning --bbox "south,west,north,east" --slug your_slug` (both flags required together).
 
 **Common issues?** See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+---
+
+## Data source: PBF (default in v3.4+) vs Overpass (legacy)
+
+Starting with **v3.4.0**, all extractors read from local `.osm.pbf` files
+downloaded from [Geofabrik](https://download.geofabrik.de/) by default,
+instead of the Overpass API.
+
+**Why:** PBF extraction is faster per city, has no rate limits, is fully
+reproducible (same PBF + same bbox = same output), and doesn't consume shared
+community resources. The OSM community explicitly discourages using Overpass
+for bulk extraction; Geofabrik PBFs are the recommended path.
+
+**How it works:**
+
+1. Each city in `cities.json` declares its Geofabrik region:
+
+   ```json
+   "minneapolis": {
+       ...existing fields...,
+       "pbf_region": "north-america/us/minnesota"
+   }
+   ```
+
+2. The first extraction of a city downloads the regional PBF to
+   `~/.cache/cs2-osm-toolkit/pbf/` (cached for 7 days, then refreshed).
+
+3. Subsequent extractions of any city in the same region reuse the cache.
+
+**Storage:** A US state PBF is ~30 MB; a country is 100 MB – 2 GB. Plan
+accordingly.
+
+**Refresh cache manually:**
+
+```bash
+uv run extract-zoning --city minneapolis --refresh-pbf
+```
+
+**Force the legacy Overpass mode** (not recommended; will be removed in v4.0.0):
+
+```bash
+uv run extract-zoning --city minneapolis --source overpass
+```
+
+**Known limitation (v3.4.0):** each `extract-*` invocation streams the regional
+PBF file once *per source category*. For `extract-zoning` (10 source categories)
+on a ~30 MB state PBF, expect 3–7 minutes total. A batched single-pass API is
+planned for v3.5.0.
 
 ### Path C: Develop or contribute
 
