@@ -14,6 +14,8 @@
 - Geofabrik download URLs — https://download.geofabrik.de/
 
 > **2026-05-18 plan revision:** Originally specified `pyrosm`. Pivoted to `pyosmium` because pyrosm's transitive dep `pyrobuf 0.9.3` uses a deprecated `distutils` API that fails on modern setuptools (project venv is Python 3.14). Tasks 4–7 (pbf_client implementation) use the pyosmium handler pattern instead of pyrosm's GeoDataFrame accessors — will be revised in detail when Phase 3 starts.
+>
+> **2026-05-18 dep resolution note:** `uv sync` resolved `osmium 4.3.1` (not 3.7.x). pyosmium had major API changes between 3.x and 4.x: use `osmium.handler.SimpleHandler` (not bare `osmium.SimpleHandler`), the new `osmium.FileProcessor` for filtering, and `osmium.geom.WKBFactory` is still available. Tasks 4–7 must target the 4.x API surface. See https://docs.osmcode.org/pyosmium/v4.x/ when implementing Phase 3.
 
 ---
 
@@ -61,7 +63,7 @@ uv run pytest <test_path> -v
 - Modify: `src/pyproject.toml`
 - Verify: existing tests pass before any changes
 
-- [ ] **Step 0.1: Run existing tests to capture baseline**
+- [x] **Step 0.1: Run existing tests to capture baseline**
 
 ```bash
 cd src
@@ -70,7 +72,7 @@ uv run pytest -v
 
 Expected: All existing tests pass. Record the count (e.g. "42 passed"). If any fail before our changes, stop and report — we need a green baseline.
 
-- [ ] **Step 0.2: Add pyosmium to dependencies**
+- [x] **Step 0.2: Add pyosmium to dependencies**
 
 Modify `src/pyproject.toml`:
 
@@ -91,7 +93,7 @@ dependencies = [
 
 Note: PyPI package name is `osmium` (the import name is also `osmium`). The library is officially called "pyosmium" but installs as `osmium`.
 
-- [ ] **Step 0.3: Install new dependency**
+- [x] **Step 0.3: Install new dependency**
 
 ```bash
 cd src
@@ -100,7 +102,7 @@ uv sync
 
 Expected: `osmium` installs from a prebuilt wheel (it ships wheels for Python 3.11–3.14 on Windows/macOS/Linux).
 
-- [ ] **Step 0.4: Verify osmium imports**
+- [x] **Step 0.4: Verify osmium imports**
 
 ```bash
 cd src
@@ -109,7 +111,7 @@ uv run python -c "import osmium; print(osmium.__version__)"
 
 Expected: prints a version `>=3.7.0`.
 
-- [ ] **Step 0.5: Commit**
+- [x] **Step 0.5: Commit**
 
 ```bash
 git add src/pyproject.toml src/uv.lock
