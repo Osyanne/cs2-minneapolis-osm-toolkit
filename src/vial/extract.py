@@ -104,16 +104,42 @@ def resolve_city_args(
     raise ValueError("Debes pasar --city o --bbox+--slug")
 
 
-# ── Main pipeline ────────────────────────────────────────────────────────────
+# ── CLI parsing ──────────────────────────────────────────────────────────────
 
-def main():
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse CLI args for extract-vial.
+
+    Args:
+        argv: Optional list of args (for testing). If None, uses sys.argv.
+
+    Returns:
+        argparse.Namespace with attributes: city, bbox, slug, source,
+        refresh_pbf, cities_file, visualizer_root.
+    """
     parser = argparse.ArgumentParser(description="Extract OSM road network → JS prebuilt")
     parser.add_argument("--city", help="Slug de cities.json (ej. minneapolis, manhattan)")
     parser.add_argument("--bbox", help="Escape hatch: bbox 's,w,n,e' (requiere --slug)")
     parser.add_argument("--slug", help="Output slug cuando se usa --bbox sin --city")
     parser.add_argument("--cities-file", default=None, help="Path a cities.json (default: <repo_root>/cities.json)")
     parser.add_argument("--visualizer-root", default=None, help="Path a visualizer/ (default: <repo_root>/visualizer)")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--source",
+        choices=["pbf", "overpass"],
+        default="pbf",
+        help="extraction source: 'pbf' (default, local Geofabrik) or 'overpass' (legacy)",
+    )
+    parser.add_argument(
+        "--refresh-pbf",
+        action="store_true",
+        help="force re-download of regional PBF even if cached (no-op with --source overpass)",
+    )
+    return parser.parse_args(argv)
+
+
+# ── Main pipeline ────────────────────────────────────────────────────────────
+
+def main():
+    args = parse_args()
 
     repo_root = Path(__file__).resolve().parents[2]
     cities_file = Path(args.cities_file) if args.cities_file else repo_root / "cities.json"
@@ -128,18 +154,41 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "datos_vial.js"
 
-    query = build_vial_query(bbox)
-
     print(f"CS2 OSM Toolkit — Vial Extractor")
     print(f"City         : {slug}")
     print(f"Bounding Box : {bbox}")
+    print(f"Source       : {args.source}")
     print(f"Output       : {out_path}\n")
 
     # ── Step 1: Download highway ways ────────────────────────────────────────
-    print("[1/2] Downloading highway ways from Overpass...")
-    result = query_with_retry(query, "vial")
-    elements = result.get("elements", [])
-    print(f"      raw ways: {len(elements)}")
+    if args.source == "pbf":
+        from shared.pbf_cache import ensure_pbf
+        from shared.pbf_client import query as pbf_query
+        from vial.zones import build_vial_pbf_filter
+
+        cities = load_cities(cities_file)
+        city_entry = get_city(cities, slug)
+        pbf_region = city_entry.get("pbf_region")
+        if not pbf_region:
+            raise SystemExit(
+                f"[ERROR] City '{slug}' has no 'pbf_region' in cities.json. "
+                "Either add it or run with --source overpass."
+            )
+        pbf_path = ensure_pbf(pbf_region, force_refresh=args.refresh_pbf)
+
+        bbox_tuple = tuple(float(v) for v in bbox.split(","))
+        filter_spec = build_vial_pbf_filter(bbox_tuple)
+
+        print("[1/2] Extracting highway ways from PBF...")
+        result = pbf_query(pbf_path, bbox_tuple, filter_spec, label="vial")
+        elements = result.get("elements", [])
+        print(f"      raw ways: {len(elements)}")
+    else:
+        query = build_vial_query(bbox)
+        print("[1/2] Downloading highway ways from Overpass...")
+        result = query_with_retry(query, "vial")
+        elements = result.get("elements", [])
+        print(f"      raw ways: {len(elements)}")
 
     # ── Step 2: Classify & bucket ────────────────────────────────────────────
     print("\n[2/2] Classifying ways into CS2 categories...")
