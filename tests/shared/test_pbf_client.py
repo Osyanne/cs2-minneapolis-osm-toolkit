@@ -332,3 +332,104 @@ class TestQueryAgainstMonaco:
         )
         with pytest.raises(FileNotFoundError):
             query(tmp_path / "nope.osm.pbf", MONACO_BBOX, spec, label="x")
+
+
+from shared.pbf_client import query_batch
+
+
+@pytest.mark.skipif(not MONACO_PBF.exists(), reason="Monaco fixture missing")
+class TestQueryBatch:
+    def test_returns_dict_keyed_by_spec_name(self):
+        specs = {
+            "buildings": FilterSpec(
+                clauses={
+                    "b": Clause(geom_types=["way"], tag_filters=[TagMatcher({"building": True})]),
+                },
+            ),
+            "amenities": FilterSpec(
+                clauses={
+                    "a": Clause(geom_types=["node"], tag_filters=[TagMatcher({"amenity": True})]),
+                },
+            ),
+        }
+        result = query_batch(MONACO_PBF, MONACO_BBOX, specs, label="test")
+        assert set(result.keys()) == {"buildings", "amenities"}
+        assert "elements" in result["buildings"]
+        assert "elements" in result["amenities"]
+        assert isinstance(result["buildings"]["elements"], list)
+        assert isinstance(result["amenities"]["elements"], list)
+
+    def test_each_spec_gets_correct_elements(self):
+        """Buildings spec gets ways with building=*; amenities spec gets nodes with amenity=*."""
+        specs = {
+            "buildings": FilterSpec(
+                clauses={
+                    "b": Clause(geom_types=["way"], tag_filters=[TagMatcher({"building": True})]),
+                },
+            ),
+            "amenities": FilterSpec(
+                clauses={
+                    "a": Clause(geom_types=["node"], tag_filters=[TagMatcher({"amenity": True})]),
+                },
+            ),
+        }
+        result = query_batch(MONACO_PBF, MONACO_BBOX, specs, label="test")
+        # Buildings should all be ways
+        assert all(el["type"] == "way" for el in result["buildings"]["elements"])
+        # Amenities should all be nodes
+        assert all(el["type"] == "node" for el in result["amenities"]["elements"])
+
+    def test_batch_matches_individual_query_results(self):
+        """query_batch result for a spec should equal query() result for the same spec."""
+        spec = FilterSpec(
+            clauses={
+                "b": Clause(geom_types=["way"], tag_filters=[TagMatcher({"building": True})]),
+            },
+        )
+        individual = query(MONACO_PBF, MONACO_BBOX, spec, label="solo")
+        batched = query_batch(MONACO_PBF, MONACO_BBOX, {"only_one": spec}, label="batched")
+        # Element counts should match exactly (same algorithm, same file)
+        assert len(batched["only_one"]["elements"]) == len(individual["elements"])
+
+    def test_empty_specs_dict_returns_empty_dict(self):
+        result = query_batch(MONACO_PBF, MONACO_BBOX, {}, label="empty")
+        assert result == {}
+
+    def test_missing_pbf_raises(self, tmp_path: Path):
+        specs = {
+            "x": FilterSpec(
+                clauses={"c": Clause(geom_types=["way"], tag_filters=[TagMatcher({"x": "y"})])},
+            ),
+        }
+        with pytest.raises(FileNotFoundError):
+            query_batch(tmp_path / "nope.osm.pbf", MONACO_BBOX, specs, label="x")
+
+    def test_spatial_join_applied_per_spec(self):
+        """Each spec's spatial joins should be applied independently."""
+        # Spec with no spatial join
+        no_join = FilterSpec(
+            clauses={
+                "b": Clause(geom_types=["way"], tag_filters=[TagMatcher({"building": True})]),
+            },
+        )
+        # Spec with a spatial join that would drop everything (anchor matches nothing)
+        with_join = FilterSpec(
+            clauses={
+                "impossible_anchor": Clause(
+                    geom_types=["node"],
+                    tag_filters=[TagMatcher({"this_tag_does_not_exist_anywhere": "neither_does_this"})],
+                ),
+                "targets": Clause(
+                    geom_types=["way"],
+                    tag_filters=[TagMatcher({"building": True})],
+                ),
+            },
+            spatial_joins=[
+                SpatialJoin(anchor_clause="impossible_anchor", target_clause="targets", buffer_m=5.0),
+            ],
+        )
+        result = query_batch(MONACO_PBF, MONACO_BBOX, {"a": no_join, "b": with_join}, label="join")
+        # no_join: should have buildings
+        assert len(result["a"]["elements"]) > 0
+        # with_join: should have ZERO (all targets dropped because no anchors matched)
+        assert len(result["b"]["elements"]) == 0

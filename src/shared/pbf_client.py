@@ -381,3 +381,167 @@ def query_with_retry(
     fail by network. Raises FileNotFoundError if pbf_path missing.
     """
     return query(pbf_path, bbox, filter_spec, label)
+
+
+def query_batch(
+    pbf_path: Path,
+    bbox: tuple[float, float, float, float],
+    filter_specs: dict[str, FilterSpec],
+    label: str = "batch",
+) -> dict[str, dict[str, Any]]:
+    """
+    Execute MULTIPLE FilterSpecs against a .osm.pbf in a SINGLE pass.
+
+    Streams the file ONE time and applies all filter_specs in parallel during
+    the iteration. Much faster than calling query() N times because the
+    expensive part (streaming the file, resolving locations, building areas)
+    happens once instead of N times.
+
+    Args:
+        pbf_path: Path al .osm.pbf (debe existir).
+        bbox: (south, west, north, east) en grados decimales.
+        filter_specs: Dict mapping spec name → FilterSpec. Output preserves keys.
+        label: Etiqueta para logs.
+
+    Returns:
+        Dict mapping each spec name to {"elements": [...]} (same shape per
+        spec as query() output).
+
+    Raises:
+        FileNotFoundError: si pbf_path no existe.
+    """
+    pbf_path = Path(pbf_path)
+    if not pbf_path.exists():
+        raise FileNotFoundError(f"PBF no encontrado: {pbf_path}")
+
+    if not filter_specs:
+        return {}
+
+    print(
+        f"        [pbf:{label}] BATCH reading {pbf_path.name} bbox={bbox} "
+        f"({len(filter_specs)} specs)",
+        flush=True,
+    )
+    start = time.monotonic()
+
+    # Determine if we need areas — any spec requests relations
+    needs_areas = any(
+        "relation" in c.geom_types
+        for spec in filter_specs.values()
+        for c in spec.clauses.values()
+    )
+
+    fp = osmium.FileProcessor(str(pbf_path)).with_locations()
+    if needs_areas:
+        fp = fp.with_areas()
+
+    # Per-spec state: elements per clause, deduped set, all_elements list
+    state: dict[str, dict[str, Any]] = {
+        spec_name: {
+            "elements_by_clause": {name: [] for name in spec.clauses},
+            "seen": set(),
+            "all_elements": [],
+        }
+        for spec_name, spec in filter_specs.items()
+    }
+
+    # IMPORTANT — pyosmium 4.x object lifetime: same invariant as query().
+    # Each `obj` is a transient view. Extract everything into plain dicts
+    # before the iterator advances.
+    for obj in fp:
+        # Classify + bbox-check ONCE for the object
+        if obj.is_node():
+            if not obj.location.valid():
+                continue
+            if not _in_bbox(obj.location.lat, obj.location.lon, bbox):
+                continue
+            geom_type = "node"
+            element = _node_to_overpass(obj)
+        elif obj.is_way():
+            try:
+                any_inside = False
+                for noderef in obj.nodes:
+                    if not noderef.location.valid():
+                        continue
+                    if _in_bbox(noderef.location.lat, noderef.location.lon, bbox):
+                        any_inside = True
+                        break
+                if not any_inside:
+                    continue
+            except osmium.InvalidLocationError:
+                continue
+            geom_type = "way"
+            element = _way_to_overpass(obj)
+        elif hasattr(obj, "from_way"):
+            try:
+                outers = list(obj.outer_rings())
+                if not outers:
+                    continue
+                any_inside = False
+                for ring in outers:
+                    for noderef in ring:
+                        if not noderef.location.valid():
+                            continue
+                        if _in_bbox(noderef.location.lat, noderef.location.lon, bbox):
+                            any_inside = True
+                            break
+                    if any_inside:
+                        break
+                if not any_inside:
+                    continue
+            except (osmium.InvalidLocationError, RuntimeError):
+                continue
+            geom_type = "relation"
+            element = _area_to_overpass(obj)
+        else:
+            continue
+
+        if element is None:
+            continue
+
+        tags = element["tags"]  # already extracted
+        key = (element["type"], element["id"])
+
+        # Match against EVERY spec's clauses
+        for spec_name, spec in filter_specs.items():
+            matching_clauses = [
+                cname for cname, clause in spec.clauses.items()
+                if clause.matches(geom_type, tags)
+            ]
+            if not matching_clauses:
+                continue
+            for cname in matching_clauses:
+                state[spec_name]["elements_by_clause"][cname].append(element)
+            if key not in state[spec_name]["seen"]:
+                state[spec_name]["seen"].add(key)
+                state[spec_name]["all_elements"].append(element)
+
+    # Apply spatial joins per spec
+    for spec_name, spec in filter_specs.items():
+        s = state[spec_name]
+        for sj in spec.spatial_joins:
+            targets = s["elements_by_clause"][sj.target_clause]
+            anchors = s["elements_by_clause"][sj.anchor_clause]
+            kept = _apply_spatial_join(targets, anchors, sj.buffer_m)
+            kept_ids = {(e["type"], e["id"]) for e in kept}
+            target_ids = {(t["type"], t["id"]) for t in targets}
+            s["all_elements"] = [
+                e for e in s["all_elements"]
+                if (e["type"], e["id"]) not in target_ids
+                or (e["type"], e["id"]) in kept_ids
+            ]
+            s["elements_by_clause"][sj.target_clause] = kept
+
+    result = {
+        spec_name: {"elements": s["all_elements"]}
+        for spec_name, s in state.items()
+    }
+
+    elapsed = time.monotonic() - start
+    total_elements = sum(len(r["elements"]) for r in result.values())
+    print(
+        f"        [pbf:{label}] BATCH OK {total_elements} total elementos "
+        f"across {len(filter_specs)} specs en {elapsed:.1f}s",
+        flush=True,
+    )
+    return result
