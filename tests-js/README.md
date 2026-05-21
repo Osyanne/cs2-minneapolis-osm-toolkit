@@ -2,12 +2,14 @@
 
 Node.js native test runner (`node --test`), zero deps.
 
+> **Requires Node ≥20** for the built-in `node --test` runner.
+
 ## Running
 
 From repo root:
 
 ```bash
-node --test tests-js/
+node --test "tests-js/**/*.test.js"
 ```
 
 Or specific test:
@@ -22,9 +24,10 @@ node --test tests-js/heightmap.test.js
 tests-js/
 ├── helpers/           Shared test utilities (mock-fetch, etc.)
 ├── fixtures/          Sample data (SRTM tiles, OSM responses)
-├── e2e/               Playwright end-to-end tests
 └── *.test.js          Unit tests for each visualizer/js/ module
 ```
+
+Playwright e2e tests will live in `tests-js/e2e/` (added by Task 6).
 
 ## Conventions
 
