@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup A — Editorial / Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #ededed;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ---------- top nav ---------- */
+    nav.top {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.2rem 3rem;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 0.85rem;
+    }
+    nav.top .brand {
+      font-family: 'Fraunces', serif;
+      font-weight: 500; font-size: 1.05rem;
+      letter-spacing: -0.01em;
+    }
+    nav.top .brand .toolkit { color: #d4a574; font-style: italic; }
+    nav.top .links { display: flex; gap: 2rem; color: #909090; }
+    nav.top .links a { color: inherit; text-decoration: none; transition: color .15s; }
+    nav.top .links a:hover { color: #d4a574; }
+
+    /* ---------- hero ---------- */
+    .hero {
+      position: relative;
+      padding: 5rem 3rem 3rem;
+      overflow: hidden;
+    }
+    .hero .eyebrow {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #d4a574;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: clamp(3rem, 6vw, 5rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      max-width: 900px;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: #d4a574;
+    }
+    .hero .lede {
+      font-size: 1.15rem;
+      color: #b0b0b0;
+      max-width: 620px;
+      margin-bottom: 0;
+    }
+    .hero .meta-line {
+      display: flex; align-items: center; gap: 2rem;
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid #1a1a1a;
+      font-family: 'Fraunces', serif;
+      font-size: 0.85rem;
+      color: #707070;
+      letter-spacing: 0.05em;
+    }
+    .hero .meta-line span strong {
+      display: block;
+      color: #ededed;
+      font-size: 1.4rem;
+      font-weight: 400;
+      letter-spacing: 0;
+      margin-bottom: 0.1rem;
+    }
+
+    /* ---------- featured ---------- */
+    .featured {
+      margin: 4rem 3rem 5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .featured .img {
+      aspect-ratio: 16/11;
+      background-image: url('/visualizer/assets/thumbnails/minneapolis.png');
+      background-size: cover; background-position: center;
+      filter: saturate(1.1) contrast(1.05);
+    }
+    .featured .body {
+      padding: 3rem;
+      display: flex; flex-direction: column; justify-content: center;
+      border-left: 1px solid #1a1a1a;
+    }
+    .featured .body .kicker {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #d4a574;
+      margin-bottom: 1rem;
+    }
+    .featured .body h2 {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: 2.5rem;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 0.5rem;
+    }
+    .featured .body .loc {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      color: #909090;
+      margin-bottom: 1.5rem;
+    }
+    .featured .body p.desc {
+      color: #b0b0b0;
+      margin-bottom: 2rem;
+      max-width: 460px;
+    }
+    .featured .body .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 460px;
+      gap: 0;
+      padding-top: 1.5rem;
+      border-top: 1px solid #1a1a1a;
+    }
+    .featured .body .stats div {
+      border-right: 1px solid #1a1a1a;
+      padding-right: 1rem;
+    }
+    .featured .body .stats div:last-child { border-right: none; }
+    .featured .body .stats strong {
+      font-family: 'Fraunces', serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      display: block;
+    }
+    .featured .body .stats span {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #707070;
+    }
+
+    /* ---------- collection grid ---------- */
+    .collection-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin: 0 3rem 2rem;
+    }
+    .collection-header h3 {
+      font-family: 'Fraunces', serif;
+      font-weight: 400;
+      font-size: 1.75rem;
+      letter-spacing: -0.01em;
+    }
+    .collection-header .small {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #707070;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      margin: 0 3rem 5rem;
+      border-top: 1px solid #1a1a1a;
+      border-left: 1px solid #1a1a1a;
+    }
+    .card {
+      border-right: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .card:hover { background: #111; }
+    .card .thumb {
+      aspect-ratio: 16/11;
+      background-size: cover;
+      background-position: center;
+      background-color: #1a1a1a;
+      margin-bottom: 1rem;
+    }
+    .card .num {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      color: #d4a574;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+    .card h4 {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 1.3rem;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.1rem;
+    }
+    .card .loc {
+      font-size: 0.85rem;
+      color: #909090;
+      margin-bottom: 0.6rem;
+    }
+    .card .tag {
+      font-size: 0.8rem;
+      color: #b0b0b0;
+      margin-bottom: 0.8rem;
+      font-style: italic;
+    }
+    .card .footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 0.8rem;
+      border-top: 1px solid #1a1a1a;
+      font-size: 0.75rem;
+      color: #707070;
+      letter-spacing: 0.05em;
+    }
+    .card .footer .count {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+    }
+
+    /* ---------- footer ---------- */
+    footer {
+      padding: 3rem;
+      border-top: 1px solid #1a1a1a;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.85rem;
+      color: #707070;
+    }
+    footer a { color: #d4a574; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <nav class="top">
+    <div class="brand">CS2 OSM <span class="toolkit">Toolkit</span></div>
+    <div class="links">
+      <a href="#">Cities</a>
+      <a href="#">Methodology</a>
+      <a href="#">GitHub</a>
+      <a href="#">Support</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">Issue No. 01 · Spring 2026</div>
+    <h1>Real-world cities,<br><em>ready to play.</em></h1>
+    <p class="lede">A curated atlas of OpenStreetMap-derived zoning maps for Cities: Skylines 2 builders. Every neighborhood, every block — sourced from the world we actually live in.</p>
+    <div class="meta-line">
+      <span><strong>10</strong>Cities</span>
+      <span><strong>855k</strong>Features</span>
+      <span><strong>5</strong>Countries</span>
+      <span><strong>3</strong>Continents</span>
+    </div>
+  </section>
+
+  <section class="featured">
+    <div class="img"></div>
+    <div class="body">
+      <div class="kicker">Featured · Hero City</div>
+      <h2>Minneapolis, MN</h2>
+      <div class="loc">Minnesota — United States</div>
+      <p class="desc">The flagship of the collection. Full coverage: zoning, vial network, services. Twin Cities urbanism distilled into 295,949 OSM features ready to import.</p>
+      <div class="stats">
+        <div><strong>295.9k</strong><span>Features</span></div>
+        <div><strong>3</strong><span>Modules</span></div>
+        <div><strong>~19min</strong><span>Build time</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="collection-header">
+    <h3>The Collection</h3>
+    <div class="small">Nine more cities</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/amsterdam.png')"></div>
+      <div class="num">No. 02</div>
+      <h4>Amsterdam</h4>
+      <div class="loc">North Holland — Netherlands</div>
+      <div class="tag">Canales y bike-first urbanism</div>
+      <div class="footer"><span>Zoning</span><span class="count">137.6k features</span></div>
+    </div>
+    <div class="card">
+      <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/new_york.png')"></div>
+      <div class="num">No. 03</div>
+      <h4>New York, NY</h4>
+      <div class="loc">New York — United States</div>
+      <div class="tag">Megalópolis legendaria — grid ortogonal</div>
+      <div class="footer"><span>Zoning</span><span class="count">131.6k features</span></div>
+    </div>
+    <div class="card">
+      <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/sacramento.png')"></div>
+      <div class="num">No. 04</div>
+      <h4>Sacramento, CA</h4>
+      <div class="loc">California — United States</div>
+      <div class="tag">Capital de California — confluencia de ríos</div>
+      <div class="footer"><span>Zoning</span><span class="count">84.0k features</span></div>
+    </div>
+    <div class="card">
+      <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/madison.png')"></div>
+      <div class="num">No. 05</div>
+      <h4>Madison, WI</h4>
+      <div class="loc">Wisconsin — United States</div>
+      <div class="tag">Isthmus capital — mid-size americana</div>
+      <div class="footer"><span>Zoning</span><span class="count">49.8k features</span></div>
+    </div>
+    <div class="card">
+      <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/trondheim.png')"></div>
+      <div class="num">No. 06</div>
+      <h4>Trondheim</h4>
+      <div class="loc">Trøndelag — Norway</div>
+      <div class="tag">Corazón de Noruega — fiordo y casco antiguo</div>
+      <div class="footer"><span>Zoning</span><span class="count">43.5k features</span></div>
+    </div>
+    <div class="card">
+      <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/fayetteville_nc.png')"></div>
+      <div class="num">No. 07</div>
+      <h4>Fayetteville, NC</h4>
+      <div class="loc">North Carolina — United States</div>
+      <div class="tag">Home of Fort Bragg — military-anchored small city</div>
+      <div class="footer"><span>Zoning</span><span class="count">39.1k features</span></div>
+    </div>
+  </div>
+
+  <footer>
+    <div>© 2026 Osyanne · MIT licensed · Built with OpenStreetMap data</div>
+    <div>Request a city · <a href="#">Support on Patreon</a></div>
+  </footer>
+
+</body>
+</html>

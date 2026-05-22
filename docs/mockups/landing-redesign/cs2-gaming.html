@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup C — CS2 Gaming Subtle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0e14;
+      --bg-2: #11161f;
+      --bg-3: #1a1f2b;
+      --line: #1f2937;
+      --line-soft: rgba(148,163,184,0.1);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --orange: #f59e0b;
+      --teal: #14b8a6;
+      --blue: #3b82f6;
+      --red: #ef4444;
+    }
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--bg);
+      background-image:
+        linear-gradient(rgba(148,163,184,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.025) 1px, transparent 1px);
+      background-size: 32px 32px;
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .wrap { max-width: 1320px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* ---------- top hud ---------- */
+    nav.hud {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    nav.hud .left { display: flex; align-items: center; gap: 1rem; }
+    nav.hud .logo {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    nav.hud .logo::before {
+      content: '◢';
+      color: var(--orange);
+      font-size: 0.9rem;
+    }
+    nav.hud .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 0.18rem 0.5rem;
+      border: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    nav.hud .tag.live::before {
+      content: '●';
+      color: var(--teal);
+      margin-right: 0.3rem;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    nav.hud .right { display: flex; gap: 0.4rem; }
+    nav.hud .right a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.82rem;
+      border: 1px solid transparent;
+      transition: all .15s;
+    }
+    nav.hud .right a:hover {
+      color: var(--text);
+      border-color: var(--line);
+      background: var(--bg-2);
+    }
+    nav.hud .right a.primary {
+      color: var(--bg);
+      background: var(--orange);
+      font-weight: 600;
+    }
+    nav.hud .right a.primary:hover {
+      background: #fbbf24;
+    }
+
+    /* ---------- hero ---------- */
+    .hero {
+      padding: 3.5rem 0 2.5rem;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    .hero .text .kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: var(--orange);
+      margin-bottom: 1.1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .hero .text .kicker::before {
+      content: '';
+      display: block;
+      width: 24px; height: 1px;
+      background: var(--orange);
+    }
+    .hero .text h1 {
+      font-size: clamp(2.5rem, 5vw, 3.6rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 1.2rem;
+    }
+    .hero .text h1 .accent { color: var(--orange); }
+    .hero .text h1 .accent-2 { color: var(--teal); }
+    .hero .text .lede {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin-bottom: 2rem;
+    }
+    .hero .text .ctas { display: flex; gap: 0.5rem; }
+    .hero .text .ctas a {
+      padding: 0.7rem 1.3rem;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: -0.005em;
+      border: 1px solid;
+      transition: all .15s;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .hero .text .ctas .primary {
+      background: var(--orange);
+      color: var(--bg);
+      border-color: var(--orange);
+    }
+    .hero .text .ctas .primary:hover { background: #fbbf24; border-color: #fbbf24; }
+    .hero .text .ctas .ghost {
+      color: var(--text);
+      border-color: var(--line);
+      background: transparent;
+    }
+    .hero .text .ctas .ghost:hover {
+      background: var(--bg-2);
+    }
+
+    /* hero blueprint panel */
+    .blueprint {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      padding: 1.2rem;
+      position: relative;
+    }
+    .blueprint::before, .blueprint::after {
+      content: '';
+      position: absolute;
+      width: 10px; height: 10px;
+      border: 1px solid var(--orange);
+    }
+    .blueprint::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+    .blueprint::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+    .blueprint .bp-head {
+      display: flex; justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px dashed var(--line);
+    }
+    .blueprint .bp-head .id { color: var(--orange); }
+    .blueprint .bp-img {
+      aspect-ratio: 16/11;
+      background-image: url('/visualizer/assets/thumbnails/minneapolis.png');
+      background-size: cover;
+      background-position: center;
+      margin-bottom: 0.8rem;
+      filter: hue-rotate(-5deg) saturate(1.2);
+      position: relative;
+    }
+    .blueprint .bp-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      padding-top: 0.6rem;
+      border-top: 1px dashed var(--line);
+    }
+    .blueprint .bp-stats > div {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .blueprint .bp-stats strong {
+      display: block;
+      font-size: 1.05rem;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .blueprint .bp-stats span {
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    /* ---------- stats bar ---------- */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid var(--line);
+      background: var(--bg-2);
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+    .stats-bar::before {
+      content: 'STATS.DAT';
+      position: absolute;
+      top: -8px; left: 12px;
+      background: var(--bg);
+      padding: 0 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+    }
+    .stats-bar > div {
+      padding: 1.1rem 1.2rem;
+      border-right: 1px solid var(--line);
+    }
+    .stats-bar > div:last-child { border-right: none; }
+    .stats-bar strong {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--text);
+      display: block;
+    }
+    .stats-bar strong .unit { color: var(--orange); font-size: 1rem; }
+    .stats-bar span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    /* ---------- section head ---------- */
+    .section-head {
+      display: flex; justify-content: space-between; align-items: end;
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.7rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .section-head h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex; align-items: baseline; gap: 0.5rem;
+    }
+    .section-head h2 .count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--orange);
+      font-weight: 500;
+    }
+    .section-head .legend {
+      display: flex; gap: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .section-head .legend span { display: flex; align-items: center; gap: 0.3rem; }
+    .section-head .legend i {
+      display: block; width: 8px; height: 8px;
+      font-style: normal;
+    }
+    .section-head .legend .z { background: var(--orange); }
+    .section-head .legend .v { background: var(--teal); }
+    .section-head .legend .s { background: var(--blue); }
+
+    /* ---------- cards ---------- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.9rem;
+      margin-bottom: 3rem;
+    }
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: all .15s;
+      position: relative;
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+    }
+    .card:hover {
+      border-color: var(--orange);
+      transform: translateY(-2px);
+    }
+    .card:hover .thumb { filter: hue-rotate(-5deg) saturate(1.3) brightness(1.1); }
+    .card .thumb {
+      aspect-ratio: 16/10;
+      background-size: cover;
+      background-position: center;
+      background-color: var(--bg-3);
+      position: relative;
+      transition: filter .2s;
+    }
+    .card .thumb .id-tag {
+      position: absolute;
+      top: 8px; left: 8px;
+      background: rgba(10,14,20,0.85);
+      color: var(--orange);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      padding: 0.18rem 0.45rem;
+      border: 1px solid var(--orange);
+    }
+    .card .thumb .count-tag {
+      position: absolute;
+      bottom: 8px; right: 8px;
+      background: rgba(10,14,20,0.85);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--line);
+    }
+    .card .body {
+      padding: 0.85rem 1rem 0.9rem;
+    }
+    .card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.15rem;
+    }
+    .card .loc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+      letter-spacing: 0.05em;
+    }
+    .card .tag {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+      margin-bottom: 0.8rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card .modules {
+      display: flex; gap: 0.3rem;
+      padding-top: 0.6rem;
+      border-top: 1px dashed var(--line);
+    }
+    .card .modules .mod {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      padding: 0.1rem 0.4rem;
+      border: 1px solid;
+    }
+    .card .modules .mod.z { color: var(--orange); border-color: var(--orange); }
+    .card .modules .mod.v { color: var(--teal); border-color: var(--teal); }
+    .card .modules .mod.s { color: var(--blue); border-color: var(--blue); }
+
+    /* ---------- footer ---------- */
+    footer {
+      padding: 2rem 0 2.5rem;
+      border-top: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--dim);
+      letter-spacing: 0.05em;
+    }
+    footer a { color: var(--muted); text-decoration: none; margin-left: 1rem; }
+    footer a:hover { color: var(--orange); }
+    footer .left::before {
+      content: '> ';
+      color: var(--teal);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <nav class="hud">
+      <div class="left">
+        <div class="logo">CS2 OSM Toolkit</div>
+        <div class="tag">v3.4.0</div>
+        <div class="tag live">10 CITIES LIVE</div>
+      </div>
+      <div class="right">
+        <a href="#">Docs</a>
+        <a href="#">GitHub</a>
+        <a href="#" class="primary">Get Pro</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="text">
+        <div class="kicker">OSM → CS2 // build pipeline online</div>
+        <h1>Real cities,<br><span class="accent">parcel by parcel.</span><br>For <span class="accent-2">Cities: Skylines 2</span>.</h1>
+        <p class="lede">Drop OpenStreetMap zoning data directly into your CS2 builds. 10 hand-curated cities. Browser viewer. Always free.</p>
+        <div class="ctas">
+          <a href="#" class="primary">▸ Browse cities</a>
+          <a href="#" class="ghost">⚡ Generate yours</a>
+        </div>
+      </div>
+      <div class="blueprint">
+        <div class="bp-head">
+          <span class="id">// HERO_CITY: MINNEAPOLIS_MN</span>
+          <span>STATUS: READY</span>
+        </div>
+        <div class="bp-img"></div>
+        <div class="bp-stats">
+          <div><strong>295.9k</strong><span>features</span></div>
+          <div><strong>3</strong><span>modules</span></div>
+          <div><strong>~19m</strong><span>build</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="stats-bar">
+      <div><strong>10<span class="unit">×</span></strong><span>Cities deployed</span></div>
+      <div><strong>854.9<span class="unit">k</span></strong><span>OSM features</span></div>
+      <div><strong>5<span class="unit">/</span></strong><span>Countries</span></div>
+      <div><strong>3.4<span class="unit">.0</span></strong><span>Toolkit version</span></div>
+    </div>
+
+    <div class="section-head">
+      <h2>City library <span class="count">[10]</span></h2>
+      <div class="legend">
+        <span><i class="z"></i> Zoning</span>
+        <span><i class="v"></i> Vial</span>
+        <span><i class="s"></i> Servicios</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/minneapolis.png')">
+          <div class="id-tag">01 · HERO</div>
+          <div class="count-tag">295.9k</div>
+        </div>
+        <div class="body">
+          <h4>Minneapolis, MN</h4>
+          <div class="loc">USA / MINNESOTA</div>
+          <div class="tag">Ciudad hero — fully featured, zoning + vial + servicios</div>
+          <div class="modules"><span class="mod z">Z</span><span class="mod v">V</span><span class="mod s">S</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/amsterdam.png')">
+          <div class="id-tag">02</div>
+          <div class="count-tag">137.6k</div>
+        </div>
+        <div class="body">
+          <h4>Amsterdam</h4>
+          <div class="loc">NLD / N. HOLLAND</div>
+          <div class="tag">Canales y bike-first urbanism</div>
+          <div class="modules"><span class="mod z">Z</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/new_york.png')">
+          <div class="id-tag">03</div>
+          <div class="count-tag">131.6k</div>
+        </div>
+        <div class="body">
+          <h4>New York, NY</h4>
+          <div class="loc">USA / NEW YORK</div>
+          <div class="tag">Megalópolis legendaria — grid ortogonal + densidad extrema</div>
+          <div class="modules"><span class="mod z">Z</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/sacramento.png')">
+          <div class="id-tag">04</div>
+          <div class="count-tag">84.0k</div>
+        </div>
+        <div class="body">
+          <h4>Sacramento, CA</h4>
+          <div class="loc">USA / CALIFORNIA</div>
+          <div class="tag">Capital de California — confluencia de ríos + transit hub</div>
+          <div class="modules"><span class="mod z">Z</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/madison.png')">
+          <div class="id-tag">05</div>
+          <div class="count-tag">49.8k</div>
+        </div>
+        <div class="body">
+          <h4>Madison, WI</h4>
+          <div class="loc">USA / WISCONSIN</div>
+          <div class="tag">Isthmus capital — mid-size americana</div>
+          <div class="modules"><span class="mod z">Z</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/trondheim.png')">
+          <div class="id-tag">06</div>
+          <div class="count-tag">43.5k</div>
+        </div>
+        <div class="body">
+          <h4>Trondheim</h4>
+          <div class="loc">NOR / TRØNDELAG</div>
+          <div class="tag">Corazón de Noruega — fiordo y casco antiguo</div>
+          <div class="modules"><span class="mod z">Z</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/fayetteville_nc.png')">
+          <div class="id-tag">07</div>
+          <div class="count-tag">39.1k</div>
+        </div>
+        <div class="body">
+          <h4>Fayetteville, NC</h4>
+          <div class="loc">USA / N. CAROLINA</div>
+          <div class="tag">Home of Fort Bragg — military-anchored small city</div>
+          <div class="modules"><span class="mod z">Z</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image: url('/visualizer/assets/thumbnails/charleston.png')">
+          <div class="id-tag">08</div>
+          <div class="count-tag">30.9k</div>
+        </div>
+        <div class="body">
+          <h4>Charleston, SC</h4>
+          <div class="loc">USA / S. CAROLINA</div>
+          <div class="tag">Historic peninsula + Lowcountry urbanism</div>
+          <div class="modules"><span class="mod z">Z</span></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="left">MIT // OSM © OpenStreetMap // built by @osyanne</div>
+      <div>
+        <a href="#">github.com/Osyanne</a>
+        <a href="#">patreon</a>
+        <a href="#">request_city.yml</a>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>
