@@ -103,3 +103,17 @@ def test_format_count_handles_negative_defensively():
     # Negative shouldn't happen but defensive guard ensures sane output
     assert _format_count(-50) == "0"
     assert _format_count(-1000) == "0"
+
+
+def test_cities_json_has_country_code_for_all_cities():
+    """Every city in cities.json must have a valid ISO 3166-1 alpha-2 country_code."""
+    import json
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parents[2]
+    cities = json.loads((repo_root / "cities.json").read_text(encoding="utf-8"))
+    for slug, entry in cities.items():
+        assert "country_code" in entry, f"Missing country_code in {slug}"
+        code = entry["country_code"]
+        assert isinstance(code, str), f"{slug}: country_code must be string"
+        assert len(code) == 2, f"{slug}: country_code must be 2 chars, got {code!r}"
+        assert code.isupper() and code.isalpha(), f"{slug}: country_code must be uppercase letters, got {code!r}"

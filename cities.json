@@ -2,6 +2,7 @@
   "minneapolis": {
     "display_name": "Minneapolis, MN",
     "country": "USA",
+    "country_code": "US",
     "bbox": [44.86, -93.38, 45.05, -93.17],
     "center": [44.97, -93.27],
     "zoom": 12,
@@ -12,6 +13,7 @@
   "amsterdam": {
     "display_name": "Amsterdam",
     "country": "Netherlands",
+    "country_code": "NL",
     "bbox": [52.320, 4.830, 52.420, 4.970],
     "center": [52.370, 4.900],
     "zoom": 13,
@@ -22,6 +24,7 @@
   "madison": {
     "display_name": "Madison, WI",
     "country": "USA",
+    "country_code": "US",
     "bbox": [43.030, -89.500, 43.130, -89.300],
     "center": [43.080, -89.400],
     "zoom": 12,
@@ -32,6 +35,7 @@
   "charleston": {
     "display_name": "Charleston, SC",
     "country": "USA",
+    "country_code": "US",
     "bbox": [32.74, -80.05, 32.92, -79.85],
     "center": [32.83, -79.95],
     "zoom": 12,
@@ -42,6 +46,7 @@
   "mafra_sc_brazil": {
     "display_name": "Mafra, SC",
     "country": "Brazil",
+    "country_code": "BR",
     "bbox": [-26.1658, -49.8643, -26.0879, -49.7700],
     "center": [-26.1269, -49.8172],
     "zoom": 13,
@@ -52,6 +57,7 @@
   "trondheim": {
     "display_name": "Trondheim",
     "country": "Norway",
+    "country_code": "NO",
     "bbox": [63.333645, 10.206814, 63.466541, 10.578632],
     "center": [63.4001, 10.3927],
     "zoom": 12,
@@ -62,6 +68,7 @@
   "bacau_ro": {
     "display_name": "Bacau, Romania",
     "country": "Romania",
+    "country_code": "RO",
     "bbox": [46.454889, 26.788788, 46.643308, 27.077866],
     "center": [46.5491, 26.9333],
     "zoom": 12,
@@ -72,6 +79,7 @@
   "fayetteville_nc": {
     "display_name": "Fayetteville, NC",
     "country": "USA",
+    "country_code": "US",
     "bbox": [35.03937, -78.98881, 35.18937, -78.83881],
     "center": [35.11437, -78.91381],
     "zoom": 12,
@@ -82,6 +90,7 @@
   "sacramento": {
     "display_name": "Sacramento, CA",
     "country": "USA",
+    "country_code": "US",
     "bbox": [38.510635, -121.566467, 38.638897, -121.390686],
     "center": [38.574766, -121.478577],
     "zoom": 12,
@@ -92,6 +101,7 @@
   "new_york": {
     "display_name": "New York, NY",
     "country": "USA",
+    "country_code": "US",
     "bbox": [40.6820, -74.0659, 40.8106, -73.8958],
     "center": [40.7463, -73.9808],
     "zoom": 12,
