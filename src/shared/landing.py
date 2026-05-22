@@ -15,6 +15,19 @@ MODULE_LABELS = {
 
 REPO_URL = "https://github.com/Osyanne/CitiesSkylines2-osm-toolkit"
 ISSUE_NEW_URL = f"{REPO_URL}/issues/new?template=city-request.yml"
+PATREON_URL = "https://www.patreon.com/c/CS2OSMToolkit"
+
+# Region display names for pills (slug → label)
+REGION_LABELS = {
+    "all": "All",
+    "north-america": "North America",
+    "europe": "Europe",
+    "south-america": "South America",
+    "asia": "Asia",
+    "africa": "Africa",
+    "oceania": "Oceania",
+    "other": "Other",
+}
 
 
 def _format_count(n: int) -> str:
@@ -173,90 +186,150 @@ def _card_html(slug: str, entry: dict, manifest: dict | None) -> str:
     )
 
 
+def _build_pills_html(cities: dict) -> str:
+    """Generate the filter pill buttons. 'all' is always active by default."""
+    counts = region_counts(cities)
+    # Always include 'all' first
+    pills = [("all", counts["all"])]
+    # Then any region present (in defined order)
+    for slug in ("north-america", "europe", "south-america", "asia", "africa", "oceania", "other"):
+        if slug in counts:
+            pills.append((slug, counts[slug]))
+    pieces = []
+    for i, (slug, count) in enumerate(pills):
+        active = ' class="active" aria-pressed="true"' if i == 0 else ' aria-pressed="false"'
+        label = REGION_LABELS.get(slug, slug.title())
+        pieces.append(
+            f'<button{active} data-region="{slug}">{label} · {count}</button>'
+        )
+    return "\n        ".join(pieces)
+
+
 def build_landing_html(cities: dict, manifests: dict) -> str:
-    """Construye el HTML de la landing completo."""
+    """Build the complete landing HTML."""
     cards = "\n".join(
         _card_html(slug, entry, manifests.get(slug))
         for slug, entry in cities.items()
     )
+    stats = build_stats(cities, manifests)
+    pills_html = _build_pills_html(cities)
 
     return f'''<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CS2 OSM Toolkit — Featured Cities</title>
-  <style>
-    * {{ box-sizing: border-box; }}
-    body {{
-      margin: 0; padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0d1117; color: #c9d1d9;
-      min-height: 100vh;
-    }}
-    header {{
-      padding: 3rem 1rem 2rem; text-align: center;
-      border-bottom: 1px solid #30363d;
-    }}
-    header h1 {{ margin: 0; font-size: 2rem; }}
-    header p {{ margin: 0.5rem 0; color: #8b949e; }}
-    main {{
-      max-width: 1400px; margin: 0 auto; padding: 2rem 1rem;
-    }}
-    .cities-grid {{
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1.5rem;
-    }}
-    .city-card {{
-      display: block; text-decoration: none; color: inherit;
-      background: #161b22; border: 1px solid #30363d;
-      border-radius: 6px; overflow: hidden;
-      transition: transform 0.15s, border-color 0.15s;
-    }}
-    .city-card:hover {{ transform: translateY(-2px); border-color: #58a6ff; }}
-    .thumb {{
-      height: 180px;
-      background-size: cover; background-position: center;
-      background-color: #21262d;
-    }}
-    .city-info {{ padding: 1rem; }}
-    .city-info h2 {{ margin: 0 0 0.25rem; font-size: 1.1rem; }}
-    .country {{ margin: 0; color: #8b949e; font-size: 0.85rem; }}
-    .tagline {{ margin: 0.5rem 0; font-size: 0.9rem; }}
-    .badges {{ display: flex; gap: 0.3rem; flex-wrap: wrap; margin: 0.5rem 0; }}
-    .badge {{
-      background: #1f6feb; color: white;
-      padding: 0.1rem 0.5rem; border-radius: 3px;
-      font-size: 0.75rem;
-    }}
-    .badge-pending {{ background: #6e7681; }}
-    .stats {{ margin: 0.5rem 0 0; color: #8b949e; font-size: 0.8rem; }}
-    footer {{
-      max-width: 1400px; margin: 3rem auto 2rem; padding: 0 1rem;
-      text-align: center; color: #8b949e; font-size: 0.9rem;
-    }}
-    footer a {{ color: #58a6ff; }}
-  </style>
+  <title>CS2 OSM Toolkit — Real-world cities for your CS2 builds</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/landing.css">
 </head>
 <body>
-  <header>
-    <h1>🏙 CS2 OSM Toolkit</h1>
-    <p>Mapas de zonificación reales para creadores de Cities: Skylines 2</p>
-  </header>
-  <main>
-    <div class="cities-grid">
+  <div class="wrap">
+    <nav class="top">
+      <div class="brand">
+        <div class="logo">🏙</div>
+        CS2 OSM Toolkit
+        <span class="ver">{stats["version"]}</span>
+      </div>
+      <div class="links">
+        <a href="{REPO_URL}#readme" data-secondary>Docs</a>
+        <a href="{REPO_URL}/blob/main/METHODOLOGY.md" data-secondary>Methodology</a>
+        <a href="{REPO_URL}" data-tertiary>GitHub</a>
+        <a href="{PATREON_URL}" class="cta">Support →</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <a class="badge" href="{REPO_URL}#roadmap"><span class="dot"></span> v3.5 — Browser generator in development</a>
+      <h1>OpenStreetMap zoning<br>for <span class="grad">Cities: Skylines 2</span> builders.</h1>
+      <p class="lede">Real-world cities, ready to import. Open data, open source, zero friction. Browse {stats["cities_count"]} curated maps or request your own.</p>
+      <div class="ctas">
+        <a href="#gallery" class="primary">Browse cities ↓</a>
+        <a href="{ISSUE_NEW_URL}" class="secondary" target="_blank" rel="noopener">Request your city</a>
+      </div>
+
+      <div class="stats" role="list" aria-label="Project stats">
+        <div role="listitem"><strong>{stats["cities_count"]}</strong><span>Cities</span></div>
+        <div role="listitem"><strong>{stats["features_total"]}</strong><span>Features</span></div>
+        <div role="listitem"><strong>{stats["countries_count"]}</strong><span>Countries</span></div>
+        <div role="listitem"><strong>{stats["version"]}</strong><span>Version</span></div>
+      </div>
+    </section>
+
+    <section id="gallery">
+      <h2 class="sr-only">Featured cities</h2>
+      <div class="filter-bar">
+        <label class="sr-only" for="search">Search cities</label>
+        <div class="filter-pills" role="group" aria-label="Filter by region">
+        {pills_html}
+        </div>
+        <div class="search">
+          <input id="search" type="search" placeholder="Search cities…" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="grid">
 {cards}
-    </div>
-  </main>
-  <footer>
-    <p>
-      ¿Tu ciudad no está?
-      <a href="{ISSUE_NEW_URL}" target="_blank" rel="noopener">Pedila acá</a>
-      ·
-      <a href="{REPO_URL}" target="_blank" rel="noopener">Código en GitHub</a>
-    </p>
-  </footer>
+        <a class="card request" href="{ISSUE_NEW_URL}" target="_blank" rel="noopener">
+          <svg class="plus" viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.5" fill="none" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <h4>Request your city</h4>
+          <p>Open an issue with your bbox and we'll add it to the collection.</p>
+          <span class="cta">Open issue template →</span>
+        </a>
+      </div>
+
+      <div id="empty-state" class="empty-state">
+        <p>No cities match. Try a different filter, or <a href="{ISSUE_NEW_URL}" target="_blank" rel="noopener">request your city →</a></p>
+      </div>
+    </section>
+
+    <footer>
+      <div>MIT licensed · OSM data © OpenStreetMap contributors · Built by <a href="https://github.com/Osyanne">@Osyanne</a></div>
+      <div class="right">
+        <a href="{REPO_URL}">GitHub</a>
+        <a href="{PATREON_URL}" class="patreon-link">Patreon</a>
+        <a href="{ISSUE_NEW_URL}" target="_blank" rel="noopener">Request a city</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+  (() => {{
+    const cards = document.querySelectorAll('.card[data-region]');
+    const pills = document.querySelectorAll('.filter-pills button');
+    const search = document.getElementById('search');
+    const empty = document.getElementById('empty-state');
+    let region = 'all', query = '';
+    function apply() {{
+      let visible = 0;
+      cards.forEach(c => {{
+        const okRegion = region === 'all' || c.dataset.region === region;
+        const okQuery = !query || c.dataset.search.includes(query);
+        const show = okRegion && okQuery;
+        c.style.display = show ? '' : 'none';
+        if (show) visible++;
+      }});
+      empty.classList.toggle('visible', visible === 0);
+    }}
+    pills.forEach(p => p.addEventListener('click', () => {{
+      pills.forEach(x => {{
+        x.classList.toggle('active', x === p);
+        x.setAttribute('aria-pressed', x === p ? 'true' : 'false');
+      }});
+      region = p.dataset.region;
+      apply();
+    }}));
+    search.addEventListener('input', e => {{
+      query = e.target.value.toLowerCase().trim();
+      apply();
+    }});
+  }})();
+  </script>
 </body>
 </html>
 '''

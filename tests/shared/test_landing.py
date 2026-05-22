@@ -30,14 +30,16 @@ def test_landing_html_has_one_card_per_city():
         "manhattan": {"modules": {"zoning": {"hash": "d", "features": 500}}},
     }
     html = build_landing_html(cities, manifests)
-    assert html.count('class="city-card"') == 2
+    # Count only city cards (not the request-city card which uses class="card request")
+    # The substring 'class="card"' (with closing quote) doesn't match 'class="card request"'.
+    assert html.count('class="card"') == 2
     assert 'href="map.html?city=minneapolis"' in html
     assert 'href="map.html?city=manhattan"' in html
     assert "Minneapolis, MN" in html
     assert "Manhattan, NYC" in html
 
 
-def test_landing_html_shows_module_badges():
+def test_landing_html_shows_module_dots():
     cities = {
         "minneapolis": _city_entry("Mpls"),
         "manhattan": _city_entry("Man"),
@@ -50,13 +52,15 @@ def test_landing_html_shows_module_badges():
     }
     html = build_landing_html(cities, manifests)
     mpls_section = html[html.index("Mpls"):html.index("Man")]
-    assert "Zoning" in mpls_section
-    assert "Vial" in mpls_section
-    assert "Servicios" in mpls_section
+    # All 3 modules → 3 "on" dots, 0 "off"
+    assert mpls_section.count('class="mod"') == 3
+    assert "mod off" not in mpls_section
+
     man_section = html[html.index("Man"):]
-    assert "Zoning" in man_section
-    assert "Vial" not in man_section
-    assert "Servicios" not in man_section
+    # Only zoning → 1 "on", 2 "off"
+    # (request-card and footer don't contain .mod elements, so counts are clean)
+    assert man_section.count('class="mod"') == 1
+    assert man_section.count("mod off") == 2
 
 
 def test_landing_html_shows_feature_counts():
@@ -72,7 +76,9 @@ def test_landing_html_handles_city_without_manifest():
     manifests = {}
     html = build_landing_html(cities, manifests)
     assert "Future" in html
-    assert "Sin datos" in html or "pending" in html.lower()
+    # Pending state in new design = all 3 dots off + count "0"
+    future_section = html[html.index("Future"):]
+    assert future_section.count("mod off") == 3
 
 
 def test_landing_html_includes_request_city_cta():
@@ -282,3 +288,106 @@ def test_card_html_handles_missing_country_code_gracefully():
     manifest = {"modules": {"zoning": {"features": 100}}}
     html = _card_html("old_city", entry, manifest)
     assert "Old City" in html
+
+
+def test_landing_html_links_external_stylesheet():
+    cities = {"minneapolis": _city_entry("M")}
+    manifests = {"minneapolis": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert 'href="assets/landing.css"' in html
+    assert '<style' not in html  # No inline styles
+
+
+def test_landing_html_has_header_with_brand_and_version():
+    cities = {"m": _city_entry("M")}
+    manifests = {"m": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert "CS2 OSM Toolkit" in html
+    # Version tag from pyproject (v3.4 or similar)
+    assert "v3.4" in html or "v3.5" in html
+
+
+def test_landing_html_has_hero_with_headline_and_ctas():
+    cities = {"m": _city_entry("M")}
+    manifests = {"m": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert '<h1' in html
+    assert "Cities: Skylines 2" in html
+    assert 'href="#gallery"' in html  # primary CTA anchor
+
+
+def test_landing_html_has_stats_banner_with_4_stats():
+    cities = {
+        "a": _city_entry("A", "USA", "t", "US"),
+        "b": _city_entry("B", "Netherlands", "t", "NL"),
+        "c": _city_entry("C", "Brazil", "t", "BR"),
+    }
+    manifests = {
+        "a": {"modules": {"zoning": {"features": 100}}},
+        "b": {"modules": {"zoning": {"features": 200}}},
+        "c": {"modules": {"zoning": {"features": 300}}},
+    }
+    html = build_landing_html(cities, manifests)
+    assert 'class="stats"' in html
+    # Total features 600 → "600"
+    assert "600" in html
+    # Version
+    assert "v3.4" in html or "v3.5" in html
+
+
+def test_landing_html_has_filter_pills():
+    cities = {
+        "a": _city_entry("A", "USA", "t", "US"),
+        "b": _city_entry("B", "Netherlands", "t", "NL"),
+    }
+    manifests = {"a": {"modules": {"zoning": {"features": 1}}},
+                 "b": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert 'data-region="all"' in html
+    assert 'data-region="north-america"' in html
+    assert 'data-region="europe"' in html
+    assert "All" in html
+    assert "North America" in html
+    assert "Europe" in html
+
+
+def test_landing_html_has_search_input():
+    cities = {"m": _city_entry("M")}
+    manifests = {"m": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert '<input' in html
+    assert 'id="search"' in html
+    assert 'type="search"' in html
+
+
+def test_landing_html_has_request_city_card():
+    cities = {"m": _city_entry("M")}
+    manifests = {"m": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert 'class="card request"' in html
+    assert "Request your city" in html
+    assert "issues/new" in html
+
+
+def test_landing_html_has_empty_state_hidden_by_default():
+    cities = {"m": _city_entry("M")}
+    manifests = {"m": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert 'class="empty-state"' in html
+    assert "No cities match" in html
+
+
+def test_landing_html_has_footer_with_patreon_link():
+    cities = {"m": _city_entry("M")}
+    manifests = {"m": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert '<footer' in html
+    assert "patreon" in html.lower()
+
+
+def test_landing_html_includes_filter_javascript():
+    cities = {"m": _city_entry("M")}
+    manifests = {"m": {"modules": {"zoning": {"features": 1}}}}
+    html = build_landing_html(cities, manifests)
+    assert '<script' in html
+    assert "addEventListener" in html
