@@ -283,5 +283,24 @@
     "tagline": "Busiest canal in the world + Baltic port",
     "locale": "es",
     "pbf_region": "europe/germany/schleswig-holstein"
+  },
+  "kursk": {
+    "display_name": "Kursk, Russia",
+    "country": "Russia",
+    "country_code": "RU",
+    "bbox": [
+      51.66,
+      36.08,
+      51.81,
+      36.23
+    ],
+    "center": [
+      51.735,
+      36.155
+    ],
+    "zoom": 12,
+    "tagline": "Southern Russian relief + early-electric tramway heritage",
+    "locale": "es",
+    "pbf_region": "russia/central-fed-district"
   }
 }
