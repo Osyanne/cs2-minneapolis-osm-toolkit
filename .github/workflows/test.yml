@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-tests:
+    name: Python Tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Sync dependencies
+        run: |
+          cd src
+          uv sync
+      - name: Run pytest
+        run: |
+          cd src
+          uv run pytest ../tests/
+
+  js-tests:
+    name: JS Tests (node --test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run tests-js
+        run: node --test "tests-js/**/*.test.js"
