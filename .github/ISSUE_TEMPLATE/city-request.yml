@@ -15,6 +15,9 @@ body:
 
         **Turnaround:** 30–60 min after acceptance for zoning when actively maintaining.
 
+        **If this tool is useful to you, a ⭐ on the repo keeps city-request turnaround active.**
+        (Not required — your request will be processed either way.)
+
   - type: input
     id: display_name
     attributes:

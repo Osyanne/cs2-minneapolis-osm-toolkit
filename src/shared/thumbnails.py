@@ -171,6 +171,16 @@ def capture_thumbnails(
 # ── Main CLI ─────────────────────────────────────────────────────────────────
 
 def main():
+    # Windows fix: stdout/stderr default to cp1252, which crashes on Unicode
+    # arrows/checkmarks used below. Force UTF-8 if available (Python 3.7+).
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
+
     parser = argparse.ArgumentParser(
         description="Generate city card thumbnails for the visualizer landing.",
     )
