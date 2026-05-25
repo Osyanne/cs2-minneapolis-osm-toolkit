@@ -911,21 +911,43 @@ async function bootstrap() {
       vial:               "datos_vial.js",
       services:           "datos_servicios.js",
       external_buildings: "datos_external_buildings.js",
+      official_zoning:    "datos_zonificacion_official.js",
     };
     const modules = Object.keys(CITY_MANIFEST.modules || {});
     if (modules.length === 0) {
       showError(`No modules found in manifest for "${CITY_SLUG}"`);
       return;
     }
-    await Promise.all(modules.map(m => {
-      if (!(m in moduleToFile)) return Promise.resolve();  // módulo desconocido → ignorar
+
+    // Split modules: primary (block render) vs secondary (lazy)
+    const primaryModules = modules.filter(m => m !== "official_zoning");
+    const secondaryModules = modules.filter(m => m === "official_zoning");
+
+    // Helper: load one module's JS via dynamic <script>
+    function loadModule(m) {
+      if (!(m in moduleToFile)) return Promise.resolve();
       const hash = CITY_MANIFEST.modules[m]?.hash ?? "";
       const src = `cities/${CITY_SLUG}/${moduleToFile[m]}?v=${hash}`;
       return loadScript(src);
-    }));
+    }
+
+    // Load primary modules first, then render the map
+    await Promise.all(primaryModules.map(loadModule));
 
     // 4. Renderizar
     renderMap();
+
+    // Lazy-load secondary modules AFTER first paint, in background.
+    // They invoke a global callback when loaded (Task 17 wires the handler).
+    for (const m of secondaryModules) {
+      loadModule(m).then(() => {
+        if (typeof window.officialZoningLoaded === "function") {
+          window.officialZoningLoaded();
+        }
+      }).catch(err => {
+        console.warn(`[official_zoning] Failed to load:`, err);
+      });
+    }
   } catch (e) {
     showError(`Failed to load city "${CITY_SLUG}": ${e.message}`);
   }
