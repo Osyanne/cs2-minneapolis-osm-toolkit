@@ -27,12 +27,14 @@ def test_main_calls_source_pipeline_with_minneapolis(tmp_path, monkeypatch):
     import geopandas as gpd
     from shapely.geometry import Polygon
 
+    # Mock GDF uses the real Mpls 2040 Plan schema: Land_Use_C in EPSG:3857.
+    # UN1 maps to res_low_house in minneapolis.yaml.
     fake_gdf = gpd.GeoDataFrame(
         {
-            "ZONE_CODE": ["R1"],
-            "geometry": [Polygon([(478000, 4980000), (478100, 4980000), (478100, 4980100), (478000, 4980100)])],
+            "Land_Use_C": ["UN1"],
+            "geometry": [Polygon([(-10380000, 5610000), (-10379900, 5610000), (-10379900, 5610100), (-10380000, 5610100)])],
         },
-        crs="EPSG:26915",
+        crs="EPSG:3857",
     )
     fake_cache = tmp_path / "mpls.zip"
     fake_cache.write_bytes(b"fake")
