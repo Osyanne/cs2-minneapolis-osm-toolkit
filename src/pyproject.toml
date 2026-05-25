@@ -9,6 +9,10 @@ dependencies = [
     "shapely>=2.0.0",
     "s2sphere>=0.2.5",
     "osmium>=3.7.0",
+    "geopandas>=0.14.0",
+    "pyogrio>=0.7.0",
+    "pyproj>=3.6.0",
+    "pyyaml>=6.0",
 ]
 
 [dependency-groups]
