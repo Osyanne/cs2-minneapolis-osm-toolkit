@@ -2,5 +2,8 @@
 
 Adding a new city = create `<slug>.py` in this dir + add to SOURCES dict below.
 """
+from official_zoning.sources import minneapolis
 
-SOURCES: dict = {}
+SOURCES = {
+    "minneapolis": minneapolis,
+}
