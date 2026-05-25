@@ -676,6 +676,42 @@
       margin: 0;
     }
 
+    /* ══ SPLIT-SCREEN FOR COMPARE MODE — clip-path masks on Leaflet pane wrappers */
+    .leaflet-overlay-pane.cs-compare-osm-only > svg,
+    .leaflet-overlay-pane.cs-compare-osm-only > canvas {
+      clip-path: inset(0 var(--split-right, 50%) 0 0);
+    }
+    .leaflet-overlay-pane.cs-compare-official-only > svg,
+    .leaflet-overlay-pane.cs-compare-official-only > canvas {
+      clip-path: inset(0 0 0 var(--split-left, 50%));
+    }
+
+    #compare-divider {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 4px;
+      background: var(--accent);
+      cursor: ew-resize;
+      z-index: 500;
+      box-shadow: 0 0 12px var(--accent-glow);
+      display: none;
+    }
+    #compare-divider.active { display: block; }
+    #compare-divider::before {
+      content: "OSM ⇆ Official";
+      position: absolute;
+      top: 20px; left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 10px;
+      background: var(--bg-panel-solid);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      white-space: nowrap;
+      color: var(--text-base);
+    }
+
     /* ══ LEAFLET DARK OVERRIDES ═══════════════════════════════════════════════ */
     .leaflet-control-zoom {
       border: none !important;
@@ -883,6 +919,7 @@
 </div>
 
 <div id="map"></div>
+<div id="compare-divider"></div>
 <div id="title-ctrl" class="hud-panel" role="status" aria-live="polite">
   <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
@@ -1719,9 +1756,12 @@ function renderMap() {
   }
 
   let currentZoningSource = "osm";  // "osm" | "official" | "compare"
+  let compareDividerEl = null;
+  let compareDragging = false;
 
   function setZoningSource(mode) {
-    currentZoningSource = mode;
+    // Always disable compare first, then re-enable if needed
+    disableCompareMode();
 
     // Detach all OSM zoning groups
     for (const lg of Object.values(groups)) {
@@ -1731,17 +1771,74 @@ function renderMap() {
     for (const lg of Object.values(groupsOfficial)) {
       if (map.hasLayer(lg)) map.removeLayer(lg);
     }
+    currentZoningSource = mode;
 
     if (mode === "osm") {
       for (const lg of Object.values(groups)) map.addLayer(lg);
     } else if (mode === "official") {
       for (const lg of Object.values(groupsOfficial)) map.addLayer(lg);
     } else if (mode === "compare") {
-      // Compare mode setup deferred to Task 19. For now, just show both.
-      for (const lg of Object.values(groups)) map.addLayer(lg);
-      for (const lg of Object.values(groupsOfficial)) map.addLayer(lg);
-      if (typeof enableCompareMode === "function") enableCompareMode();
+      enableCompareMode();
     }
+  }
+
+  function enableCompareMode() {
+    // Add BOTH OSM and Official layer groups to map
+    for (const lg of Object.values(groups)) {
+      if (!map.hasLayer(lg)) map.addLayer(lg);
+    }
+    for (const lg of Object.values(groupsOfficial)) {
+      if (!map.hasLayer(lg)) map.addLayer(lg);
+    }
+
+    // Apply clip-path CSS variables and classes to overlay pane
+    const overlayPane = document.querySelector(".leaflet-overlay-pane");
+    if (overlayPane) {
+      overlayPane.style.setProperty("--split-right", "50%");
+      overlayPane.style.setProperty("--split-left",  "50%");
+      // Apply both classes so CSS rules take effect
+      overlayPane.classList.add("cs-compare-osm-only", "cs-compare-official-only");
+    }
+
+    // Show divider
+    compareDividerEl = document.getElementById("compare-divider");
+    if (compareDividerEl) {
+      compareDividerEl.classList.add("active");
+      compareDividerEl.style.left = "50%";
+      compareDividerEl.addEventListener("mousedown", _onDragStart);
+      document.addEventListener("mousemove", _onCompareDrag);
+      document.addEventListener("mouseup", _onDragEnd);
+    }
+  }
+
+  function _onDragStart() { compareDragging = true; }
+  function _onDragEnd()   { compareDragging = false; }
+
+  function _onCompareDrag(e) {
+    if (!compareDragging || !compareDividerEl) return;
+    const pct = (e.clientX / window.innerWidth) * 100;
+    const clamped = Math.max(5, Math.min(95, pct));
+    compareDividerEl.style.left = clamped + "%";
+    const pane = document.querySelector(".leaflet-overlay-pane");
+    if (pane) {
+      pane.style.setProperty("--split-right", (100 - clamped) + "%");
+      pane.style.setProperty("--split-left",  clamped + "%");
+    }
+  }
+
+  function disableCompareMode() {
+    if (compareDividerEl) {
+      compareDividerEl.classList.remove("active");
+      compareDividerEl.removeEventListener("mousedown", _onDragStart);
+    }
+    document.removeEventListener("mousemove", _onCompareDrag);
+    document.removeEventListener("mouseup", _onDragEnd);
+
+    const overlayPane = document.querySelector(".leaflet-overlay-pane");
+    if (overlayPane) {
+      overlayPane.classList.remove("cs-compare-osm-only", "cs-compare-official-only");
+    }
+    compareDragging = false;
   }
 
   function wireUpModuleControls() {
