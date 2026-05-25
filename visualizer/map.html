@@ -5,246 +5,818 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CS2 OSM Toolkit — Cargando…</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
   <style>
+    /* ══ DESIGN TOKENS — CS2 in-game UI (faithful) ════════════════════════════ */
+    :root {
+      /* Surfaces — paneles más matte, gradient top→bottom sutil */
+      --bg-void:        #0a1220;
+      --bg-deep:        #0e1828;
+      --bg-panel-top:   rgba(28, 42, 64, 0.95);
+      --bg-panel-bot:   rgba(16, 26, 42, 0.97);
+      --bg-panel:       rgba(20, 32, 50, 0.94);
+      --bg-panel-solid: rgba(18, 28, 44, 0.98);
+      --bg-elev:        rgba(255, 255, 255, 0.05);
+      --bg-elev-hover:  rgba(255, 255, 255, 0.10);
+      --bg-tile:        rgba(35, 52, 78, 0.85);
+      --bg-tile-hover:  rgba(50, 72, 105, 0.90);
+
+      /* Borders */
+      --border-hair:    rgba(255, 255, 255, 0.06);
+      --border-soft:    rgba(255, 255, 255, 0.10);
+      --border-strong:  rgba(255, 255, 255, 0.18);
+
+      /* Text */
+      --text-strong:    #ffffff;
+      --text-base:      #e2e8f0;
+      --text-muted:     #a3b1c2;
+      --text-dim:       #6b7a8f;
+      --text-faint:     #4a5568;
+
+      /* CS2 accent — azul medio del juego (no cyan brillante) */
+      --accent:         #4a90e2;
+      --accent-bright:  #7ab3f0;
+      --accent-deep:    #2f6cb8;
+      --accent-soft:    rgba(74, 144, 226, 0.22);
+      --accent-glow:    rgba(74, 144, 226, 0.40);
+      --accent-on:      #ffffff;
+
+      /* Category colors — paleta de servicios CS2 */
+      --cat-zoning:     #5dbe6e;   /* verde residencial */
+      --cat-vial:       #f5c842;   /* amarillo tráfico */
+      --cat-services:   #5bbdd0;   /* cyan-azulado servicios */
+      --cat-transport:  #e89944;   /* naranja transporte */
+
+      /* Status */
+      --warn:           #f5c842;
+      --ok:             #5dbe6e;
+      --err:            #e55b5b;
+
+      /* Layers (z-index) */
+      --z-map:          1;
+      --z-overlay:      400;
+      --z-hud:          600;
+      --z-loading:      10000;
+
+      /* Motion */
+      --t-fast:         120ms;
+      --t-base:         180ms;
+      --t-slow:         300ms;
+      --ease-out:       cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* Typography — Inter weight medio, sin Orbitron en HUD */
+      --font-ui:        'Inter', system-ui, sans-serif;
+      --font-display:   'Inter', system-ui, sans-serif;
+      --font-mono:      'JetBrains Mono', ui-monospace, monospace;
+
+      /* Shape — CS2 usa border-radius medio (10-12px) */
+      --radius-sm:      6px;
+      --radius-md:      10px;
+      --radius-lg:      14px;
+
+      /* Elevation — panel sólido con shadow + subtle inner */
+      --shadow-panel:   0 6px 24px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+      --inner-top:      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; background: #0a0d1a; font-family: 'Segoe UI', system-ui, sans-serif; }
+    html, body {
+      height: 100%;
+      background: var(--bg-void);
+      font-family: var(--font-ui);
+      font-feature-settings: "cv11", "ss01";
+      color: var(--text-base);
+      -webkit-font-smoothing: antialiased;
+    }
     #map { height: 100vh; }
 
-    /* ══ LOADING OVERLAY ══════════════════════════════════════════════════════ */
+    /* ══ LOADING OVERLAY — landing-page identity ══════════════════════════════ */
+    /* Local palette overrides — hereda 1:1 del landing (assets/landing.css)    */
     #loading {
-      position: fixed; inset: 0; z-index: 10000;
-      background: #0a0d1a;
+      --ld-bg:           #0e0e10;
+      --ld-text:         #fafafa;
+      --ld-text-muted:   #a0a0a8;
+      --ld-text-dim:     #71717a;
+      --ld-accent:       #5e6ad2;
+      --ld-accent-soft:  #c4b5fd;
+      --ld-accent-2:     #8b5cf6;
+      --ld-border:       rgba(255, 255, 255, 0.06);
+      --ld-border-soft:  rgba(255, 255, 255, 0.10);
+      --ld-warn:         #f59e0b;
+      --ld-err:          #ef4444;
+
+      position: fixed; inset: 0; z-index: var(--z-loading);
+      background: var(--ld-bg);
+      color: var(--ld-text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 6px;
+      align-items: center; justify-content: center;
+      overflow: hidden;
     }
-    #loading .logo {
-      font-size: 2.2em; font-weight: 700; letter-spacing: 1px;
-      color: #8BC34A; margin-bottom: 4px;
-    }
-    #loading .sub { color: #555; font-size: 0.88em; margin-bottom: 24px; }
-    #pgrid {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 6px; width: 520px;
-    }
-    .pi {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-left: 3px solid #1e2235;
-      border-radius: 7px; padding: 9px 13px;
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 0.81em; color: #aaa;
-      transition: all 0.25s;
-    }
-    .pi.loading { border-left-color: #FFC107; color: #ddd; background: rgba(255,193,7,0.06); }
-    .pi.done    { border-left-color: #4CAF50; color: #ccc; background: rgba(76,175,80,0.06); }
-    .pi.error   { border-left-color: #ef5350; color: #ccc; background: rgba(239,83,80,0.06); }
-    .pbadge {
-      font-size: 0.78em; padding: 2px 9px; border-radius: 20px;
-      background: rgba(255,255,255,0.05); color: #666; white-space: nowrap;
-    }
-    .pi.loading .pbadge { background: rgba(255,193,7,0.15); color: #FFC107; }
-    .pi.done    .pbadge { background: rgba(76,175,80,0.15);  color: #4CAF50; }
-    .pi.error   .pbadge { background: rgba(239,83,80,0.15);  color: #ef5350; }
-    #totbar { margin-top: 16px; font-size: 0.8em; color: #444; }
-    #totbar b { color: #8BC34A; font-weight: 700; }
-    #errmsg {
-      margin-top: 12px; font-size: 0.75em; color: #444;
-      max-width: 520px; text-align: center; line-height: 1.5; display: none;
-    }
-
-    /* ══ LEGEND ═══════════════════════════════════════════════════════════════ */
-    .legend {
-      background: rgba(10,13,26,0.93);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 9px; padding: 13px 16px;
-      color: #ccc; font-size: 11.5px;
-      backdrop-filter: blur(8px);
-      max-height: 82vh; overflow-y: auto;
-      scrollbar-width: thin; scrollbar-color: #2a2d3d transparent;
-    }
-    .legend::-webkit-scrollbar { width: 4px; }
-    .legend::-webkit-scrollbar-thumb { background: #2a2d3d; border-radius: 4px; }
-    .legend h4 { font-size: 12px; color: #8BC34A; font-weight: 600;
-                 letter-spacing: 0.6px; margin-bottom: 10px; }
-    .lsect { font-size: 9.5px; text-transform: uppercase; letter-spacing: 1.2px;
-             color: #3a3d50; margin: 9px 0 4px; }
-    .li { display: flex; align-items: center; gap: 8px; line-height: 2; }
-    .ldot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-    .lname { flex: 1; }
-    .lcount {
-      font-size: 10.5px; padding: 1px 7px; border-radius: 10px;
-      background: rgba(255,255,255,0.06); color: #888;
-      font-variant-numeric: tabular-nums; min-width: 28px; text-align: right;
-    }
-    .lcount.zero { color: #444; background: rgba(255,255,255,0.03); }
-
-    /* ══ LEAFLET DARK OVERRIDES ═══════════════════════════════════════════════ */
-    .leaflet-control-zoom a,
-    .leaflet-control-layers-toggle {
-      background-color: rgba(10,13,26,0.9) !important;
-      color: #aaa !important;
-      border-color: rgba(255,255,255,0.08) !important;
-    }
-    .leaflet-control-zoom a:hover { color: #8BC34A !important; }
-    .leaflet-control-layers {
-      background: rgba(10,13,26,0.93) !important;
-      border: 1px solid rgba(255,255,255,0.07) !important;
-      border-radius: 9px !important; color: #ccc !important;
-      font-size: 11.5px !important;
-    }
-    .leaflet-control-layers label { color: #ccc !important; }
-    .leaflet-control-layers-separator { border-color: rgba(255,255,255,0.08) !important; }
-    /* Bug #2 fix: limitar altura del control de capas expandido para no tapar leyenda */
-    .leaflet-control-layers-expanded {
-      max-height: 70vh !important;
-      overflow-y: auto !important;
-      scrollbar-width: thin;
-      scrollbar-color: #2a2d3d transparent;
-    }
-    .leaflet-control-layers-expanded::-webkit-scrollbar { width: 5px; }
-    .leaflet-control-layers-expanded::-webkit-scrollbar-thumb {
-      background: #2a2d3d; border-radius: 4px;
-    }
-    .leaflet-popup-content-wrapper {
-      background: rgba(10,13,26,0.95) !important;
-      color: #ddd !important; border: 1px solid rgba(255,255,255,0.08) !important;
-      border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
-    }
-    .leaflet-popup-tip { background: rgba(10,13,26,0.95) !important; }
-    .leaflet-popup-close-button { color: #666 !important; }
-
-    /* ══ STATUS BAR ═══════════════════════════════════════════════════════════ */
-    #statusbar {
-      position: fixed; bottom: 12px; left: 12px;
-      background: rgba(10,13,26,0.88); color: #555;
-      padding: 6px 14px; border-radius: 6px; font-size: 11px;
-      border: 1px solid rgba(255,255,255,0.06); display: none;
-    }
-    #statusbar b { color: #8BC34A; }
-
-    /* ══ TITLE ════════════════════════════════════════════════════════════════ */
-    #title-ctrl {
-      position: absolute; top: 14px; left: 56px; z-index: 500;
-      background: rgba(10,13,26,0.88); color: #8BC34A;
-      padding: 8px 16px; border-radius: 8px;
-      font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
-      border: 1px solid rgba(139,195,74,0.2);
+    /* Radial purple glow — centrado sobre el contenido */
+    #loading::before {
+      content: "";
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(1400px, 110vw);
+      height: min(1000px, 100vh);
+      background: radial-gradient(ellipse at center, rgba(94, 106, 210, 0.22) 0%, rgba(94, 106, 210, 0.06) 35%, transparent 65%);
       pointer-events: none;
     }
 
-/* ══ MODULE PILLS (Header arriba) ═════════════════════════════════════════════ */
-#header-controls {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  z-index: 1000;
-  background: rgba(10,13,26,0.93);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 9px;
-  padding: 6px 10px;
-  backdrop-filter: blur(8px);
-}
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 16px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #ccc;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s;
-}
-.pill:hover:not(.disabled) {
-  background: rgba(255,255,255,0.10);
-  border-color: rgba(255,255,255,0.15);
-}
-.pill.on {
-  background: rgba(139, 195, 74, 0.18);
-  border-color: rgba(139, 195, 74, 0.4);
-  color: #C5E1A5;
-}
-.pill.disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-.pill-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid currentColor;
-  background: transparent;
-  transition: background 0.15s;
-}
-.pill.on .pill-dot {
-  background: #8BC34A;
-  border-color: #8BC34A;
-  box-shadow: 0 0 6px rgba(139,195,74,0.5);
-}
+    .loading-content {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      align-items: center;
+      width: 100%; max-width: 640px;
+      padding: 0 2rem;
+      text-align: center;
+    }
 
-/* ══ FONDO CONTROL (dropdown a la derecha de las pills) ═════════════════════════ */
-#fondo-control {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #aaa;
-  padding-left: 10px;
-  border-left: 1px solid rgba(255,255,255,0.08);
-}
-#fondo-control.visible { display: inline-flex; }
-#fondo-select {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.10);
-  color: #ddd;
-  font-size: 11px;
-  padding: 3px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-}
+    /* Brand block — replica del nav.top .brand */
+    .loading-brand {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      font-weight: 600; font-size: 0.95rem;
+      margin-bottom: 2.8rem;
+      color: var(--ld-text);
+    }
+    .loading-brand-logo {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--ld-accent), var(--ld-accent-2));
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(94, 106, 210, 0.35);
+    }
+    .loading-brand-logo svg { width: 16px; height: 16px; color: #fff; }
+    .loading-brand-ver {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ld-text-dim);
+      padding: 0.15rem 0.45rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      margin-left: 0.2rem;
+    }
 
-/* ══ MASTER TOGGLE EN LEYENDA (espejo de las pills) ══════════════════════════ */
-.legend h4 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.master-toggle {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1.5px solid #555;
-  background: transparent;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.15s;
-}
-.master-toggle.on {
-  background: #8BC34A;
-  border-color: #8BC34A;
-  box-shadow: 0 0 6px rgba(139,195,74,0.4);
-}
-.master-toggle:hover {
-  border-color: #888;
-}
+    /* Badge "Loading [city]" — replica de .hero .badge */
+    .loading-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 0.95rem;
+      background: rgba(94, 106, 210, 0.10);
+      border: 1px solid rgba(94, 106, 210, 0.30);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      color: var(--ld-accent-soft);
+      margin-bottom: 1.6rem;
+    }
+    .loading-badge .bdot {
+      width: 6px; height: 6px;
+      background: var(--ld-accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--ld-accent);
+      animation: ldPulse 2s ease-in-out infinite;
+    }
+    @keyframes ldPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Hero title — replica de .hero h1 */
+    #loading .logo {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(2.1rem, 4.5vw, 3rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: var(--ld-text);
+      margin-bottom: 0.6rem;
+      text-shadow: none;
+      text-transform: none;
+    }
+    #loading .logo .city-grad {
+      background: linear-gradient(135deg, var(--ld-accent) 0%, var(--ld-accent-soft) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* Lede — replica de .hero .lede */
+    #loading .sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      color: var(--ld-text-muted);
+      max-width: 480px;
+      margin-bottom: 2.4rem;
+      letter-spacing: 0;
+      text-transform: none;
+      line-height: 1.5;
+    }
+    #loading .sub::before { content: none; }
+
+    /* Module pills — replica de .filter-pills */
+    #pgrid {
+      display: flex;
+      flex-wrap: wrap; justify-content: center;
+      gap: 0.4rem;
+      margin-bottom: 2.4rem;
+    }
+    .pi {
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 0.42rem 0.95rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--ld-text-muted);
+      letter-spacing: 0;
+      text-transform: none;
+      transition: background .2s, border-color .2s, color .2s;
+    }
+    .pi::before {
+      content: ""; width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ld-text-dim);
+      flex-shrink: 0;
+      transition: background .2s, box-shadow .2s;
+    }
+    .pi.loading {
+      color: var(--ld-text);
+      border-color: rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.06);
+    }
+    .pi.loading::before {
+      background: var(--ld-warn);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.55);
+      animation: ldDot 1.4s ease-in-out infinite;
+    }
+    .pi.done {
+      color: var(--ld-text);
+      border-color: rgba(94, 106, 210, 0.40);
+      background: rgba(94, 106, 210, 0.10);
+    }
+    .pi.done::before {
+      background: var(--ld-accent);
+      box-shadow: 0 0 8px rgba(94, 106, 210, 0.6);
+    }
+    .pi.error {
+      color: var(--ld-text);
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.07);
+    }
+    .pi.error::before { background: var(--ld-err); box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+    @keyframes ldDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .pbadge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--ld-text-dim);
+      font-variant-numeric: tabular-nums;
+      margin-left: 0.15rem;
+    }
+    .pi.loading .pbadge { background: rgba(245, 158, 11, 0.18); color: var(--ld-warn); }
+    .pi.done    .pbadge { background: rgba(94, 106, 210, 0.20); color: var(--ld-accent-soft); }
+    .pi.error   .pbadge { background: rgba(239, 68, 68, 0.18);  color: var(--ld-err); }
+
+    /* Progress bar — fina, simple, sin scan */
+    .loading-progress {
+      width: 100%; max-width: 420px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 1rem;
+    }
+    .loading-progress-bar {
+      position: relative;
+      width: 100%; height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .loading-progress-bar::before,
+    .loading-progress-bar::after { content: none; }
+    .loading-progress-fill {
+      position: absolute; inset: 0;
+      width: 0%;
+      background: linear-gradient(90deg, var(--ld-accent) 0%, var(--ld-accent-soft) 100%);
+      box-shadow: 0 0 12px rgba(94, 106, 210, 0.5);
+      transition: width 500ms cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 999px;
+    }
+    .loading-progress-scan {
+      position: absolute; top: 0; left: -40%;
+      width: 40%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(196, 181, 253, 0.35), transparent);
+      animation: ldShimmer 1.8s ease-in-out infinite;
+    }
+    @keyframes ldShimmer {
+      0%   { left: -40%; }
+      100% { left: 100%; }
+    }
+
+    #totbar {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      color: var(--ld-text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex; align-items: baseline; gap: 0.7rem;
+    }
+    #totbar b {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--ld-text);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      text-shadow: none;
+    }
+    #errmsg {
+      margin-top: 1.2rem; font-size: 0.85rem; color: var(--ld-text-dim);
+      max-width: 520px; text-align: center; line-height: 1.5; display: none;
+    }
+
+    @media (max-width: 640px) {
+      .loading-brand { margin-bottom: 2rem; }
+      #loading .logo { font-size: 1.7rem; }
+      #loading .sub  { font-size: 0.9rem; margin-bottom: 1.8rem; }
+      #pgrid { margin-bottom: 1.8rem; }
+    }
+
+    /* ══ HUD PANEL — gradient sólido CS2 (no glass pesado) ═══════════════════ */
+    .hud-panel {
+      background: linear-gradient(180deg, var(--bg-panel-top) 0%, var(--bg-panel-bot) 100%);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      box-shadow: var(--shadow-panel), var(--inner-top);
+    }
+
+    /* ══ CITY PILL (top-left) — estilo MEGALÓPOLIS de CS2 ════════════════════ */
+    #title-ctrl {
+      position: fixed;
+      top: 14px; left: 60px;
+      z-index: var(--z-hud);
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 14px 8px 11px;
+      font-family: var(--font-ui);
+      font-size: 13px; font-weight: 500;
+      letter-spacing: 0.3px;
+      color: var(--text-strong);
+      pointer-events: auto;
+      border-color: rgba(122, 142, 200, 0.35) !important;
+      transition: border-color var(--t-base) var(--ease-out);
+    }
+    #title-ctrl::before {
+      content: ""; width: 5px; height: 5px;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent-glow);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    #title-ctrl .title-icon {
+      width: 15px; height: 15px;
+      color: var(--accent-bright);
+      flex-shrink: 0;
+    }
+
+    /* ══ MODULE TOOLBAR (top-right tile icons) ════════════════════════════════ */
+    #header-controls {
+      position: fixed;
+      top: 14px; right: 14px;
+      z-index: var(--z-hud);
+      display: flex; align-items: center;
+      padding: 6px;
+      gap: 4px;
+      max-width: calc(100vw - 28px);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    #header-controls::-webkit-scrollbar { display: none; }
+
+    /* Tile icons (estilo bottom toolbar de CS2) */
+    .pill {
+      --cat: var(--accent);
+      position: relative;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg,
+                    color-mix(in srgb, var(--cat) 18%, var(--bg-tile)) 0%,
+                    var(--bg-tile) 100%);
+      border: 1px solid var(--border-hair);
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+      box-shadow: var(--inner-top);
+      transition: background var(--t-fast) var(--ease-out),
+                  border-color var(--t-fast) var(--ease-out),
+                  transform var(--t-fast) var(--ease-out);
+    }
+    .pill:hover:not(.disabled) {
+      background: linear-gradient(180deg,
+                    color-mix(in srgb, var(--cat) 28%, var(--bg-tile-hover)) 0%,
+                    var(--bg-tile-hover) 100%);
+      border-color: var(--border-soft);
+    }
+    .pill.on {
+      background: linear-gradient(180deg,
+                    color-mix(in srgb, var(--cat) 38%, var(--bg-tile)) 0%,
+                    color-mix(in srgb, var(--cat) 18%, var(--bg-tile)) 100%);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent),
+                  0 4px 16px color-mix(in srgb, var(--cat) 35%, transparent),
+                  var(--inner-top);
+      color: var(--text-strong);
+    }
+    /* CS2-style bottom underline para tile activa */
+    .pill.on::after {
+      content: "";
+      position: absolute;
+      left: 8px; right: 8px; bottom: -1px;
+      height: 2px;
+      background: var(--accent-bright);
+      border-radius: 1px;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+    .pill.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.15));
+    }
+    .pill-icon {
+      width: 22px; height: 22px;
+      color: var(--cat);
+      flex-shrink: 0;
+      transition: color var(--t-fast) var(--ease-out),
+                  transform var(--t-fast) var(--ease-out);
+    }
+    .pill.on .pill-icon {
+      color: var(--text-strong);
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cat) 60%, transparent));
+    }
+    .pill:hover:not(.disabled) .pill-icon { transform: scale(1.08); }
+    .pill .pill-lock {
+      width: 12px; height: 12px;
+      color: var(--text-faint);
+      position: absolute;
+      bottom: 4px; right: 4px;
+      background: var(--bg-deep);
+      border-radius: 50%;
+      padding: 1px;
+    }
+
+    /* Hidden text label (a11y only) */
+    .pill-label {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0);
+      white-space: nowrap; border: 0;
+    }
+
+    /* Tooltip on hover — pequeño label debajo */
+    .pill::before {
+      content: attr(data-label);
+      position: absolute;
+      top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 9px;
+      background: var(--bg-panel-solid);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-sm);
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text-base);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--t-fast) var(--ease-out);
+      box-shadow: var(--shadow-panel);
+    }
+    .pill:hover::before { opacity: 1; }
+
+    /* Separador vertical antes de Fondo */
+    .pill-sep {
+      width: 1px;
+      background: var(--border-soft);
+      margin: 4px 4px;
+      align-self: stretch;
+      flex-shrink: 0;
+    }
+
+    /* ══ FONDO CONTROL ═════════════════════════════════════════════════════════ */
+    #fondo-control {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px 0 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0;
+    }
+    #fondo-control.visible { display: inline-flex; }
+    #fondo-select {
+      background: var(--bg-elev);
+      border: 1px solid var(--border-soft);
+      color: var(--text-base);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 22px 5px 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 7px center;
+      transition: border-color var(--t-fast) var(--ease-out);
+    }
+    #fondo-select:hover, #fondo-select:focus {
+      border-color: var(--border-strong);
+      outline: none;
+    }
+
+    /* ══ LEGEND (bottom-left) — panel sólido CS2 ═════════════════════════════ */
+    .legend {
+      padding: 14px 16px 16px;
+      color: var(--text-base);
+      font-size: 12px;
+      max-height: 80vh;
+      overflow-y: auto;
+      min-width: 240px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-strong) transparent;
+    }
+    .legend::-webkit-scrollbar { width: 6px; }
+    .legend::-webkit-scrollbar-thumb {
+      background: var(--border-strong); border-radius: var(--radius-sm);
+    }
+    .legend h4 {
+      display: flex; align-items: center; gap: 9px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text-strong);
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      text-transform: none;
+      margin-bottom: 10px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid var(--border-hair);
+    }
+    .legend h4.compliance {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .lsect {
+      font-family: var(--font-ui);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      color: var(--text-dim);
+      margin: 12px 0 4px;
+    }
+    .li {
+      display: flex; align-items: center; gap: 9px;
+      line-height: 1.85;
+      padding: 1px 2px;
+    }
+    .ldot {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15),
+                  0 1px 2px rgba(0,0,0,0.4);
+    }
+    .lname {
+      flex: 1;
+      color: var(--text-base);
+      font-size: 12px;
+    }
+    .lcount {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      min-width: 32px;
+      text-align: right;
+      letter-spacing: 0.2px;
+    }
+    .lcount.zero {
+      color: var(--text-faint);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Master toggle (mini-checkbox CS2 style) */
+    .master-toggle {
+      width: 14px; height: 14px;
+      border-radius: 4px;
+      border: 1.5px solid var(--text-dim);
+      background: rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: all var(--t-fast) var(--ease-out);
+    }
+    .master-toggle.on {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-glow);
+    }
+    .master-toggle.on::after {
+      content: "";
+      position: absolute;
+      left: 3px; top: 0px;
+      width: 5px; height: 9px;
+      border: solid var(--accent-on);
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .master-toggle:hover { border-color: var(--text-muted); }
+
+    /* ══ LEAFLET DARK OVERRIDES ═══════════════════════════════════════════════ */
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .leaflet-control-zoom a {
+      background-color: var(--bg-panel-solid) !important;
+      color: var(--text-muted) !important;
+      border: 1px solid var(--border-soft) !important;
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      box-shadow: var(--inner-top) !important;
+      transition: color var(--t-fast) var(--ease-out),
+                  border-color var(--t-fast) var(--ease-out);
+      font-family: var(--font-ui) !important;
+      font-weight: 500 !important;
+    }
+    .leaflet-control-zoom a:first-child {
+      border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+    }
+    .leaflet-control-zoom a:last-child {
+      border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
+      border-top: none !important;
+    }
+    .leaflet-control-zoom a:hover {
+      color: var(--accent-bright) !important;
+      border-color: rgba(34, 211, 238, 0.3) !important;
+    }
+
+    /* Layer control en bottom-right — coherente con .hud-panel */
+    .leaflet-control-layers {
+      background: var(--bg-panel) !important;
+      border: 1px solid var(--border-soft) !important;
+      border-radius: var(--radius-lg) !important;
+      color: var(--text-base) !important;
+      font-family: var(--font-ui) !important;
+      font-size: 11.5px !important;
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      box-shadow: var(--shadow-panel), var(--inner-top) !important;
+    }
+    .leaflet-control-layers-toggle {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>") !important;
+      background-size: 20px 20px !important;
+      width: 38px !important;
+      height: 38px !important;
+    }
+    .leaflet-control-layers label {
+      color: var(--text-base) !important;
+      font-weight: 500;
+    }
+    .leaflet-control-layers-separator {
+      border-color: var(--border-hair) !important;
+      margin: 8px 0 !important;
+    }
+    .leaflet-control-layers-expanded {
+      max-height: 70vh !important;
+      overflow-y: auto !important;
+      padding: 12px 14px !important;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-strong) transparent;
+    }
+    .leaflet-control-layers-expanded::-webkit-scrollbar { width: 5px; }
+    .leaflet-control-layers-expanded::-webkit-scrollbar-thumb {
+      background: var(--border-strong); border-radius: var(--radius-sm);
+    }
+    .leaflet-control-layers-base label,
+    .leaflet-control-layers-overlays label {
+      display: block;
+      padding: 3px 0;
+      line-height: 1.7;
+    }
+    .leaflet-control-layers-base input,
+    .leaflet-control-layers-overlays input {
+      accent-color: var(--accent);
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-panel-solid) !important;
+      color: var(--text-base) !important;
+      border: 1px solid var(--border-soft) !important;
+      border-radius: var(--radius-md) !important;
+      box-shadow: var(--shadow-panel), var(--inner-top) !important;
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+    }
+    .leaflet-popup-tip { background: var(--bg-panel-solid) !important; }
+    .leaflet-popup-close-button { color: var(--text-dim) !important; }
+    .leaflet-popup-close-button:hover { color: var(--accent-bright) !important; }
+
+    /* Attribution control: discreto */
+    .leaflet-control-attribution {
+      background: rgba(10, 14, 26, 0.7) !important;
+      color: var(--text-faint) !important;
+      font-size: 10px !important;
+      backdrop-filter: blur(8px);
+      border-radius: var(--radius-sm) 0 0 0 !important;
+    }
+    .leaflet-control-attribution a {
+      color: var(--text-dim) !important;
+    }
+
+    /* ══ STATUS BAR ═══════════════════════════════════════════════════════════ */
+    #statusbar {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 7px 16px;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-base);
+      letter-spacing: 0;
+      display: none;
+      z-index: var(--z-hud);
+      white-space: nowrap;
+    }
+    #statusbar b {
+      color: var(--accent-bright);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    #statusbar .sep {
+      color: var(--text-faint);
+      margin: 0 9px;
+    }
+
+    /* ══ ACCESSIBILITY ════════════════════════════════════════════════════════ */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+    .pill:focus-visible,
+    #fondo-select:focus-visible,
+    .master-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* ══ RESPONSIVE — pantallas chicas ════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      #title-ctrl {
+        font-size: 10.5px;
+        padding: 7px 12px 7px 10px;
+        letter-spacing: 1.2px;
+      }
+      #header-controls {
+        top: 60px;
+        right: 14px;
+        left: 14px;
+        max-width: none;
+      }
+      .pill {
+        padding: 6px 10px;
+        font-size: 10.5px;
+      }
+      .legend { font-size: 11px; min-width: 200px; }
+    }
   </style>
 </head>
 <body>
 
 <!-- Header — module pills + control de fondo (poblado dinámicamente por renderMap) -->
-<div id="header-controls">
+<div id="header-controls" class="hud-panel">
   <!-- Pills inyectadas dinámicamente según módulos del manifest -->
   <div id="fondo-control">
-    <span>Fondo:</span>
-    <select id="fondo-select">
+    <span>Fondo</span>
+    <select id="fondo-select" aria-label="Modo de fondo">
       <option value="hidden">Oculto</option>
       <option value="faded">Atenuado</option>
       <option value="full">Completo</option>
@@ -252,18 +824,43 @@
   </div>
 </div>
 
-<!-- Loading screen -->
+<!-- Loading screen — landing-page identity -->
 <div id="loading">
-  <div class="logo">🏙 CS2 OSM Toolkit</div>
-  <div class="sub" id="loading-sub">Cargando ciudad…</div>
-  <div id="pgrid"></div>
-  <div id="totbar">Polígonos cargados: <b id="tcnt">0</b></div>
-  <div id="errmsg"></div>
+  <div class="loading-content">
+    <div class="loading-brand">
+      <div class="loading-brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
+          <path d="M9 3v15M15 6v15"/>
+        </svg>
+      </div>
+      <span>CS2 OSM Toolkit</span>
+      <span class="loading-brand-ver">v3.4</span>
+    </div>
+    <span class="loading-badge"><span class="bdot"></span> Loading city data</span>
+    <div class="logo">Loading <span class="city-grad" id="loading-city">city</span></div>
+    <p class="sub" id="loading-sub">Preparing OpenStreetMap features for Cities: Skylines 2.</p>
+    <div id="pgrid"></div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar" role="progressbar" aria-label="Progreso de carga">
+        <div class="loading-progress-fill" id="progress-fill"></div>
+        <div class="loading-progress-scan"></div>
+      </div>
+      <div id="totbar"><span>Features loaded</span><b id="tcnt">0</b></div>
+    </div>
+    <div id="errmsg"></div>
+  </div>
 </div>
 
 <div id="map"></div>
-<div id="title-ctrl">🗺 CS2 OSM Toolkit</div>
-<div id="statusbar"></div>
+<div id="title-ctrl" class="hud-panel" role="status" aria-live="polite">
+  <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
+    <path d="M9 3v15M15 6v15"/>
+  </svg>
+  <span id="title-text">CS2 OSM Toolkit</span>
+</div>
+<div id="statusbar" class="hud-panel"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -297,8 +894,8 @@ async function bootstrap() {
     CITY_META = cities[CITY_SLUG];
 
     // Actualizar título de carga tan pronto como tenemos el nombre
-    document.getElementById("loading-sub").textContent =
-      `Cargando ${CITY_META.display_name}…`;
+    const cityEl = document.getElementById("loading-city");
+    if (cityEl) cityEl.textContent = CITY_META.display_name;
 
     // 2. manifest.json — qué módulos hay generados para esta ciudad
     const manifestResp = await fetch(`cities/${CITY_SLUG}/manifest.json`);
@@ -451,8 +1048,8 @@ function renderMap() {
 
   // Actualizar title desde metadata
   document.title = `CS2 OSM Toolkit — ${CITY_META.display_name}`;
-  const titleCtrl = document.getElementById("title-ctrl");
-  if (titleCtrl) titleCtrl.textContent = `🗺 ${CITY_META.display_name}`;
+  const titleText = document.getElementById("title-text");
+  if (titleText) titleText.textContent = CITY_META.display_name;
 
   // Detectar qué módulos están disponibles (manifest + variable global presente)
   const hasZoning   = !!(CITY_MANIFEST.modules?.zoning)   && typeof DATA_RES_LOW_HOUSE !== "undefined";
@@ -487,7 +1084,7 @@ function renderMap() {
     ),
   };
   baseLayers["Dark (CARTO)"].addTo(map);
-  L.control.layers(baseLayers, null, { collapsed: true, position: "topright" }).addTo(map);
+  L.control.layers(baseLayers, null, { collapsed: true, position: "bottomright" }).addTo(map);
 
   // ══════════════════════════════════════════════════════════════════════════
   // TIER-BASED HIDING — large vs small polygons por zoom
@@ -559,17 +1156,30 @@ function renderMap() {
   // ══════════════════════════════════════════════════════════════════════════
   const pgrid = document.getElementById("pgrid");
   const pitems = {};
+  const progressFill = document.getElementById("progress-fill");
+  let totalModuleSlots = 0;
+  let doneSlots = 0;
 
   function addProgressItem(key, label) {
     const d = Object.assign(document.createElement("div"), { className: "pi", id: "pi-" + key });
     d.innerHTML = `<span>${label}</span><span class="pbadge">Pendiente</span>`;
     pgrid.appendChild(d);
     pitems[key] = d;
+    totalModuleSlots++;
   }
   function setP(key, state, text) {
     if (!pitems[key]) return;
+    const prevState = pitems[key].className.split(" ")[1] || "";
     pitems[key].className = "pi " + state;
     pitems[key].querySelector(".pbadge").textContent = text;
+
+    if (!progressFill || totalModuleSlots === 0) return;
+    // loading → cuenta como media; done → cuenta completa
+    if (state === "done" && prevState !== "done") doneSlots++;
+    const pct = state === "loading"
+      ? Math.min(100, ((doneSlots + 0.5) / totalModuleSlots) * 100)
+      : (doneSlots / totalModuleSlots) * 100;
+    progressFill.style.width = pct.toFixed(1) + "%";
   }
 
   if (hasZoning)   addProgressItem("zoning",   "Zonificación");
@@ -837,31 +1447,81 @@ function renderMap() {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // MODULE PILLS — inyectadas dinámicamente según módulos del manifest
+  // MODULE TILE-ICONS — colored category icons en el top toolbar (estilo CS2)
   // ══════════════════════════════════════════════════════════════════════════
   const headerControls = document.getElementById("header-controls");
   const fondoControl = document.getElementById("fondo-control");
 
-  function injectPill(moduleKey, label) {
-    const pill = document.createElement("div");
-    pill.className = "pill on";
+  // Iconos SVG por módulo (lucide-style stroke icons) + color de categoría CS2
+  const MODULE_META = {
+    zoning: {
+      label: "Zoning",
+      cat: "var(--cat-zoning)",
+      svg: `<svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+           `<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>` +
+           `<path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>` +
+           `<path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>` +
+           `<path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>`,
+    },
+    vial: {
+      label: "Red vial",
+      cat: "var(--cat-vial)",
+      svg: `<svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+           `<path d="M12 13v8M12 3v3"/>` +
+           `<path d="M18 6a2 2 0 0 1 1.387.56l2.307 2.22a1 1 0 0 1 0 1.44l-2.307 2.22A2 2 0 0 1 18 13H6a2 2 0 0 1-1.387-.56l-2.306-2.22a1 1 0 0 1 0-1.44l2.306-2.22A2 2 0 0 1 6 6z"/></svg>`,
+    },
+    services: {
+      label: "Servicios",
+      cat: "var(--cat-services)",
+      svg: `<svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+           `<path d="M12 11v4M14 13h-4"/>` +
+           `<path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>` +
+           `<rect x="4" y="6" width="16" height="13" rx="2"/></svg>`,
+    },
+    transporte: {
+      label: "Transporte (próximamente)",
+      cat: "var(--cat-transport)",
+      svg: `<svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+           `<path d="M8 6v6M15 6v6M2 12h19.6"/>` +
+           `<path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/>` +
+           `<circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>`,
+    },
+  };
+
+  function injectPill(moduleKey, enabled) {
+    const meta = MODULE_META[moduleKey];
+    if (!meta) return;
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = enabled ? "pill on" : "pill disabled";
     pill.dataset.module = moduleKey;
-    pill.innerHTML = `<span class="pill-dot"></span><span>${label}</span>`;
+    pill.setAttribute("data-label", meta.label);
+    pill.setAttribute("aria-label", meta.label);
+    pill.setAttribute("aria-pressed", enabled ? "true" : "false");
+    pill.style.setProperty("--cat", meta.cat);
+    if (!enabled) pill.title = meta.label;
+    let inner = meta.svg + `<span class="pill-label">${meta.label}</span>`;
+    if (!enabled) {
+      inner += `<svg class="pill-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+               `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+               `<rect x="3" y="11" width="18" height="11" rx="2"/>` +
+               `<path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+    }
+    pill.innerHTML = inner;
     headerControls.insertBefore(pill, fondoControl);
   }
 
-  if (hasZoning)   injectPill("zoning",   "Zoning");
-  if (hasVial)     injectPill("vial",      "Vial");
-  if (hasServices) injectPill("services", "Servicios");
+  if (hasZoning)   injectPill("zoning",   true);
+  if (hasVial)     injectPill("vial",     true);
+  if (hasServices) injectPill("services", true);
+  injectPill("transporte", false);  // siempre disabled hasta v4
 
-  // Módulo Transporte siempre presente pero deshabilitado (próximamente)
+  // Separador vertical antes del control Fondo
   {
-    const pill = document.createElement("div");
-    pill.className = "pill disabled";
-    pill.dataset.module = "transporte";
-    pill.title = "Próximamente";
-    pill.innerHTML = `<span class="pill-dot"></span><span>Transporte</span>`;
-    headerControls.insertBefore(pill, fondoControl);
+    const sep = document.createElement("span");
+    sep.className = "pill-sep";
+    sep.setAttribute("aria-hidden", "true");
+    headerControls.insertBefore(sep, fondoControl);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -967,7 +1627,11 @@ function renderMap() {
     for (const pill of document.querySelectorAll(".pill")) {
       const key = pill.dataset.module;
       if (!MODULES[key]) continue;
-      pill.classList.toggle("on", moduleStates[key] === "on");
+      const on = moduleStates[key] === "on";
+      pill.classList.toggle("on", on);
+      if (!pill.classList.contains("disabled")) {
+        pill.setAttribute("aria-pressed", on ? "true" : "false");
+      }
     }
     for (const mt of document.querySelectorAll(".master-toggle")) {
       const key = mt.dataset.module;
@@ -1053,7 +1717,7 @@ function renderMap() {
   }
 
   if (Object.keys(overlayMap).length > 0) {
-    L.control.layers(null, overlayMap, { collapsed: true, position: "topright" }).addTo(map);
+    L.control.layers(null, overlayMap, { collapsed: true, position: "bottomright" }).addTo(map);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1061,7 +1725,10 @@ function renderMap() {
   // ══════════════════════════════════════════════════════════════════════════
   const legend = L.control({ position: "bottomleft" });
   legend.onAdd = () => {
-    const div = L.DomUtil.create("div", "legend");
+    const div = L.DomUtil.create("div", "legend hud-panel");
+    // Evitar que el scroll/click en la leyenda haga pan en el mapa
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
     let html = "";
 
     if (hasZoning) {
@@ -1111,7 +1778,7 @@ function renderMap() {
     // Solo aparece si hay zoning cargado, porque solo el módulo zoning + external_buildings
     // produce polígonos con `method`. Vial / services no.
     if (hasZoning) {
-      html += `<h4 style="margin-top:14px;color:#a8a8a8">Confiabilidad de clasificación</h4>`;
+      html += `<h4 class="compliance" style="margin-top:14px">Confiabilidad de clasificación</h4>`;
       html += `<div class="li" title="Polígono con tag OSM específico (building=house, building=apartments, etc.) — máxima confianza">
         <div class="ldot" style="background:#7c9cd9;opacity:0.9"></div>
         <span class="lname">OSM tag-classified</span>
@@ -1210,13 +1877,19 @@ function renderMap() {
   }
 
   function finalizeLoad() {
+    // Llenar la barra hasta el final antes del fade-out
+    if (progressFill) progressFill.style.width = "100%";
+
     const overlay = document.getElementById("loading");
     overlay.style.transition = "opacity 0.5s";
-    overlay.style.opacity    = "0";
-    setTimeout(() => { overlay.style.display = "none"; }, 530);
+    setTimeout(() => { overlay.style.opacity = "0"; }, 200);
+    setTimeout(() => { overlay.style.display = "none"; }, 730);
 
     const sb = document.getElementById("statusbar");
-    sb.innerHTML = `<b>${total.toLocaleString()}</b> polígonos · ${CITY_META.display_name} · datos OSM`;
+    sb.innerHTML =
+      `<b>${total.toLocaleString()}</b> polígonos` +
+      `<span class="sep">·</span>${CITY_META.display_name}` +
+      `<span class="sep">·</span>datos OSM`;
     sb.style.display = "block";
 
     updateLegendCounts();
