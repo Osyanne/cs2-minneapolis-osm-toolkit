@@ -1,0 +1,110 @@
+# New York City Zoning — NYC Zoning Resolution
+# Source: NYC Department of City Planning Zoning Districts (ZoLA shapefile)
+# Reference: https://www1.nyc.gov/site/planning/zoning/glossary.page
+# Notes: NYC codes follow pattern <PREFIX><DIGIT>[-<SUBDISTRICT>]. We map by
+# prefix+digit; subdistricts (X-1, X-2, …) share the same CS2 zone.
+city: new_york
+source_url: https://www1.nyc.gov/site/planning/data-maps/open-data.page
+source_field: ZONEDIST
+crs_in: EPSG:2263
+last_validated: 2026-05-24
+mappings:
+  # Residential R1-R10 (density increases with digit)
+  R1-1: res_low_house
+  R1-2: res_low_house
+  R1-2A: res_low_house
+  R2:   res_low_house
+  R2A:  res_low_house
+  R2X:  res_row
+  R3-1: res_row
+  R3-2: res_row
+  R3A:  res_row
+  R3X:  res_row
+  R4:   res_med
+  R4-1: res_med
+  R4A:  res_med
+  R4B:  res_med
+  R5:   res_med
+  R5A:  res_med
+  R5B:  res_med
+  R5D:  res_med
+  R6:   res_high
+  R6A:  res_high
+  R6B:  res_high
+  R7-1: res_high
+  R7-2: res_high
+  R7A:  res_high
+  R7B:  res_high
+  R7D:  res_high
+  R7X:  res_high
+  R8:   res_high
+  R8A:  res_high
+  R8B:  res_high
+  R8X:  res_high
+  R9:   res_high
+  R9A:  res_high
+  R9X:  res_high
+  R10:  res_high
+  R10A: res_high
+  R10H: res_high
+  R10X: res_high
+
+  # Commercial C1-C8 (C1-C5 = neighborhood/regional, C6-C8 = downtown/heavy)
+  C1-1: com_low
+  C1-2: com_low
+  C1-3: com_low
+  C1-4: com_low
+  C1-5: com_low
+  C2-1: com_low
+  C2-2: com_low
+  C2-3: com_low
+  C2-4: com_low
+  C2-5: com_low
+  C3:   com_low
+  C3A:  com_low
+  C4-1: com_high
+  C4-2: com_high
+  C4-3: com_high
+  C4-4: com_high
+  C4-5: com_high
+  C4-6: com_high
+  C4-7: com_high
+  C5-1: com_high
+  C5-2: com_high
+  C5-3: com_high
+  C5-4: com_high
+  C5-5: com_high
+  C6-1: com_high
+  C6-2: com_high
+  C6-3: com_high
+  C6-4: com_high
+  C6-5: com_high
+  C6-6: com_high
+  C6-7: com_high
+  C6-8: com_high
+  C6-9: com_high
+  C7:   com_high
+  C8-1: com_low
+  C8-2: com_low
+  C8-3: com_low
+  C8-4: com_low
+
+  # Manufacturing M1-M3
+  M1-1: industrial
+  M1-2: industrial
+  M1-3: industrial
+  M1-4: industrial
+  M1-5: industrial
+  M1-6: industrial
+  M2-1: industrial
+  M2-2: industrial
+  M2-3: industrial
+  M2-4: industrial
+  M3-1: industrial
+  M3-2: industrial
+
+  # Park / Battery Park City / Special districts → office_low as catch-all visual
+  PARK: prk_surface
+  BPC:  res_mixed
+
+unmapped: skip
