@@ -72,3 +72,47 @@ def concatenate_ways(ways: list[list[list[float]]]) -> list[list[list[float]]]:
             # gap — start a new segment
             segments.append(list(w))
     return segments
+
+
+COORD_PRECISION = 5  # 5 decimals ≈ 1.1m at the equator
+
+
+def _round_coords(coords: list[list[float]]) -> list[list[float]]:
+    return [[round(lat, COORD_PRECISION), round(lon, COORD_PRECISION)] for lat, lon in coords]
+
+
+def build_route_feature(relation: dict, cs2_key: str) -> dict | None:
+    """Convert an Overpass relation element to a feature dict.
+
+    Args:
+        relation: Overpass JSON relation element.
+        cs2_key: CS2 category from classify_route().
+
+    Returns:
+        dict with keys: name, ref, coords, operator, osm_id — or None if no
+        usable geometry (no member ways with coords). If the relation has
+        multiple disjoint segments, only the longest one is kept in coords.
+    """
+    way_geoms = extract_way_geoms(relation)
+    if not way_geoms:
+        return None
+    segments = concatenate_ways(way_geoms)
+    if not segments:
+        return None
+    longest = max(segments, key=len)
+    if len(longest) < 2:
+        return None
+
+    tags = relation.get("tags") or {}
+    name = tags.get("name") or ""
+    ref = tags.get("ref") or ""
+    if not name:
+        name = f"Route {ref}" if ref else "Unknown route"
+
+    return {
+        "name": name,
+        "ref": ref,
+        "coords": _round_coords(longest),
+        "operator": tags.get("operator") or "",
+        "osm_id": relation.get("id"),
+    }
