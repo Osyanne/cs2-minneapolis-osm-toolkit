@@ -71,7 +71,7 @@ def get_city(cities: dict, slug: str) -> dict:
 
 # ── Manifest IO ──────────────────────────────────────────────────────────────
 
-VALID_MODULES = frozenset({"zoning", "vial", "services", "external_buildings", "official_zoning"})
+VALID_MODULES = frozenset({"zoning", "vial", "services", "external_buildings", "official_zoning", "transporte"})
 
 
 def manifest_path(visualizer_root: Path, slug: str) -> Path:
