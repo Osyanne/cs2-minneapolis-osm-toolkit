@@ -42,7 +42,7 @@ build-backend = "hatchling.build"
 
 # Layout de sub-packages — hatchling empaqueta los directorios completos
 [tool.hatch.build.targets.wheel]
-packages = ["shared", "zoning", "vial", "services", "official_zoning"]
+packages = ["shared", "zoning", "vial", "services", "official_zoning", "transporte"]
 
 # Note: pytest config (markers) lives in <repo_root>/pytest.ini because pytest's
 # rootdir detection lands on the project root, not src/. Keeping pytest config
