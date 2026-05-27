@@ -944,6 +944,7 @@ async function bootstrap() {
       services:           "datos_servicios.js",
       external_buildings: "datos_external_buildings.js",
       official_zoning:    "datos_zonificacion_official.js",
+      transporte:         "datos_transporte.js",
     };
     const modules = Object.keys(CITY_MANIFEST.modules || {});
     if (modules.length === 0) {
@@ -952,8 +953,9 @@ async function bootstrap() {
     }
 
     // Split modules: primary (block render) vs secondary (lazy)
-    const primaryModules = modules.filter(m => m !== "official_zoning");
-    const secondaryModules = modules.filter(m => m === "official_zoning");
+    const SECONDARY = new Set(["official_zoning", "transporte"]);
+    const primaryModules = modules.filter(m => !SECONDARY.has(m));
+    const secondaryModules = modules.filter(m => SECONDARY.has(m));
 
     // Helper: load one module's JS via dynamic <script>
     function loadModule(m) {
@@ -973,11 +975,14 @@ async function bootstrap() {
     // They invoke a global callback when loaded (Task 17 wires the handler).
     for (const m of secondaryModules) {
       loadModule(m).then(() => {
-        if (typeof window.officialZoningLoaded === "function") {
+        if (m === "official_zoning" && typeof window.officialZoningLoaded === "function") {
           window.officialZoningLoaded();
         }
+        if (m === "transporte" && typeof window.transporteLoaded === "function") {
+          window.transporteLoaded();
+        }
       }).catch(err => {
-        console.warn(`[official_zoning] Failed to load:`, err);
+        console.warn(`[${m}] Failed to load:`, err);
       });
     }
   } catch (e) {
@@ -1176,6 +1181,28 @@ function renderMap() {
   const groupsOfficial = Object.fromEntries(
     Object.keys(ZONES).map(k => [k, L.layerGroup()])
   );
+
+  // Parallel layer groups for transporte — lazy-populated by window.transporteLoaded()
+  const transporteGroups = {
+    lrt:      L.layerGroup().addTo(map),
+    commuter: L.layerGroup().addTo(map),
+    brt:      L.layerGroup().addTo(map),
+    bus:      L.layerGroup().addTo(map),
+  };
+
+  const TRANSPORT_STYLE = {
+    lrt:      { color: "#0084c8", weight: 3.5, opacity: 0.9  }, // Mpls LRT blue
+    commuter: { color: "#7d2d3e", weight: 4.0, opacity: 0.9  }, // Northstar maroon
+    brt:      { color: "#f4a261", weight: 2.5, opacity: 0.85 }, // METRO Rapid orange
+    bus:      { color: "#7a93a8", weight: 1.0, opacity: 0.55 }, // muted gray-blue
+  };
+
+  const TRANSPORT_LABELS = {
+    lrt:      "LRT",
+    commuter: "Commuter Rail",
+    brt:      "BRT",
+    bus:      "Bus",
+  };
 
   // VIAL layer groups — solo si módulo presente
   const vialGroups = hasVial
@@ -1959,6 +1986,47 @@ function renderMap() {
     // Expose for Task 18 sub-toggle. Initially hidden — don't addTo(map).
     window._cs2OfficialZoningCount = total;
     console.log(`[official_zoning] Loaded ${total} polygons into parallel layer groups (hidden).`);
+  };
+
+  window.transporteLoaded = function () {
+    let total = 0;
+    for (const cat of Object.keys(transporteGroups)) {
+      const varName = `DATA_TRANSPORT_${cat.toUpperCase()}`;
+      const data = window[varName];
+      if (!Array.isArray(data)) continue;
+
+      const style = TRANSPORT_STYLE[cat];
+      for (const route of data) {
+        if (!route.coords || route.coords.length < 2) continue;
+        const popup = `<b>${escHtml(route.name || "Unknown route")}</b><br>` +
+                      `<span style="color:#888;font-size:11px">${escHtml(TRANSPORT_LABELS[cat])}` +
+                      (route.operator ? ` · ${escHtml(route.operator)}` : "") + `</span>`;
+        const polyline = L.polyline(route.coords, style).bindPopup(popup);
+        transporteGroups[cat].addLayer(polyline);
+        total++;
+      }
+    }
+    window._cs2TransporteCount = total;
+    console.log(`[transporte] Loaded ${total} routes across ${Object.keys(transporteGroups).length} layer groups.`);
+
+    // Patch MODULES so existing toggle infrastructure (wireUpModuleControls +
+    // toggleModule + applyModuleState) handles transporte clicks. This avoids
+    // attaching a duplicate event listener.
+    MODULES.transporte = {
+      label: "Transporte",
+      enabled: true,
+      layerGroupsRef: () => Object.values(transporteGroups),
+    };
+    moduleStates.transporte = "on";
+
+    // Activate the tile UI (remove disabled state + lock SVG)
+    if (typeof syncTransporteAvailability === "function") {
+      syncTransporteAvailability();
+    }
+    // Sync the on/off class so the pill visually reflects "on"
+    if (typeof syncUI === "function") {
+      syncUI();
+    }
   };
 
   // ══════════════════════════════════════════════════════════════════════════
