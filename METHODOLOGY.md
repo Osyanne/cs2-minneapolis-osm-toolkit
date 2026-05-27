@@ -625,3 +625,45 @@ discovery). To activate: open the portal in a browser, capture the resolved
 shapefile URL from DevTools, update the constant, and re-run the extraction
 CLI. The full pipeline is tested with mocked GeoDataFrames; the network path
 is exercised opt-in via `pytest -m network`.
+
+---
+
+## 16. Transit overlay (added 2026-05-25)
+
+A 4-category transit overlay sourced from OpenStreetMap route relations.
+A single Overpass query fetches all `route=light_rail|train|tram|bus`
+relations in the city bbox; each relation becomes one polyline (multi-way
+relations are concatenated where members touch; disjoint segments emit the
+longest continuous piece).
+
+### Category mapping
+
+| OSM route | Network/name hint | CS2 category |
+|---|---|---|
+| `light_rail` | — | LRT |
+| `tram` | — | LRT (display) |
+| `train` / `commuter_rail` | — | Commuter Rail |
+| `bus` | `network=METRO` or `name` matches `METRO X Line` | BRT |
+| `bus` | (other) | Bus |
+
+### Sources shipped
+
+Minneapolis (Metro Transit, 297 routes for the city bbox including 5 LRT,
+4 commuter rail, and ~288 bus routes). METRO Rapid BRT lines currently fall
+under "Bus" due to OSM tag variance — to be refined in v1.1.
+
+### Activation
+
+The visualizer activates the "Transporte" tile automatically when the per-city
+manifest declares the `transporte` module. The tile starts disabled (with a
+lock icon) on cities that haven't generated transit data; once
+`window.transporteLoaded()` fires after lazy-loading `datos_transporte.js`,
+it patches the MODULES registry and the existing toggle infrastructure handles
+clicks via `wireUpModuleControls` / `toggleModule` / `applyModuleState`.
+
+### Performance note
+
+The Mpls `datos_transporte.js` is ~4 MB (297 routes with full member geometry).
+Lazy-loaded after primary render so it doesn't block initial paint. Future
+optimization options: coordinate decimation, way-filtering by relevant network,
+or removing routes that fall outside the visible bbox.

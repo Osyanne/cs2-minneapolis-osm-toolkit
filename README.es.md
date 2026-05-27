@@ -177,6 +177,33 @@ Quick start:
 
 Agregar una ciudad nueva = un source module en `src/official_zoning/sources/<slug>.py` + un YAML mapping en `src/official_zoning/mappings/<slug>.yaml` + entrada `official_source` en `cities.json`. Ver Minneapolis como pattern de referencia.
 
+## Capa de tránsito (Minneapolis)
+
+El visualizer renderea la red Metro Transit de Mpls como overlay de 4 categorías,
+sourced desde OSM route relations:
+
+| Categoría | Fuente OSM | Rutas Mpls |
+|---|---|---|
+| LRT | `route=light_rail` | METRO Blue Line, Green Line |
+| Commuter Rail | `route=train` | Northstar |
+| BRT | `route=bus` + METRO Rapid pattern | METRO A/C/D/E/F Line |
+| Bus | `route=bus` (resto) | ~140 rutas locales Metro Transit |
+
+Generar data de tránsito para una ciudad (Mpls works out of the box; otras ciudades
+dependen de su cobertura OSM de tránsito):
+
+```bash
+cd src
+uv run extract-transporte --city minneapolis
+```
+
+El visualizer auto-detecta el módulo via el manifest y activa el tile "Transporte" en el HUD.
+
+**Limitación v1 conocida:** El classifier de BRT detecta METRO Rapid via
+`network=METRO` o el name pattern `METRO X Line`. La data OSM real puede usar
+tags ligeramente distintos (ej. `network=Metro Transit` también para BRT), causando
+que algunas rutas BRT caigan bajo Bus. Refinamiento diferido a v1.1.
+
 ---
 
 ## Setup técnico
